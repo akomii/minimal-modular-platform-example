@@ -65,3 +65,4 @@ dist/
 
 ### custom ###
 .env
+docker.properties
