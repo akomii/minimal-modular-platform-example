@@ -62,3 +62,6 @@ node_modules/
 node/
 local-node/
 dist/
+
+### custom ###
+.env
