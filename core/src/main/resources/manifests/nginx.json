@@ -1,0 +1,10 @@
+{
+  "id": "web-server",
+  "version": "1.0.0",
+  "type": "container",
+  "deployment": "registry.hub.docker.com/library/nginx:alpine",
+  "image": "nginx:alpine",
+  "ports": [
+    "8080:80"
+  ]
+}

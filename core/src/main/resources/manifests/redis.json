@@ -1,0 +1,10 @@
+{
+  "id": "cache-server",
+  "version": "7.2.4",
+  "type": "container",
+  "deployment": "registry.hub.docker.com/library/redis:alpine",
+  "image": "redis:alpine",
+  "ports": [
+    "6379:6379"
+  ]
+}
