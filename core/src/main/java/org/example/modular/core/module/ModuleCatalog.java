@@ -21,7 +21,7 @@ public class ModuleCatalog {
   @Getter
   private final List<ModuleDefinition> modules = new ArrayList<>();
 
-  public ModuleCatalog(@Value("${module.dir:modules}") String moduleDir, ObjectMapper objectMapper) {
+  public ModuleCatalog(@Value("${module.dir}") String moduleDir, ObjectMapper objectMapper) {
     this.moduleDir = moduleDir;
     this.objectMapper = objectMapper;
   }
