@@ -109,6 +109,25 @@
               </resources>
             </configuration>
           </execution>
+          <!-- copy docker.properties file to taget/ during build -->
+          <execution>
+            <id>copy-docker-properties</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>src/main/resources</directory>
+                  <includes>
+                    <include>docker.properties</include>
+                  </includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <!-- build frontend via npm during build
