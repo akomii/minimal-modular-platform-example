@@ -52,15 +52,11 @@ public class DockerJavaRuntime implements ModuleRuntime {
   }
 
   @Override
-  public void start(ModuleDefinition module) {
-    ModuleStatus currentStatus = status(module);
-    if (currentStatus == ModuleStatus.RUNNING) {
-      return;
+  public void install(ModuleDefinition module) {
+    if (status(module) != ModuleStatus.NOT_CREATED) {
+      throw new InvalidModuleStateException("Module is already installed: " + module.getId());
     }
-    if (currentStatus == ModuleStatus.NOT_CREATED) {
-      createContainer(module);
-    }
-    dockerClient.startContainerCmd(module.getId()).exec();
+    createContainer(module);
   }
 
   private void createContainer(ModuleDefinition module) {
@@ -73,6 +69,7 @@ public class DockerJavaRuntime implements ModuleRuntime {
         if (parts.length != 2) {
           throw new IllegalArgumentException("Invalid port mapping: " + mapping);
         }
+
         int hostPort = Integer.parseInt(parts[0]);
         int containerPort = Integer.parseInt(parts[1]);
         ExposedPort exposedPort = ExposedPort.tcp(containerPort);
@@ -92,10 +89,38 @@ public class DockerJavaRuntime implements ModuleRuntime {
   }
 
   @Override
+  public void start(ModuleDefinition module) {
+    ModuleStatus currentStatus = status(module);
+    if (currentStatus == ModuleStatus.NOT_CREATED) {
+      throw new InvalidModuleStateException("Module is not installed: " + module.getId());
+    }
+    if (currentStatus == ModuleStatus.RUNNING) {
+      return;
+    }
+    dockerClient.startContainerCmd(module.getId()).exec();
+  }
+
+  @Override
   public void stop(ModuleDefinition module) {
-    if (status(module) != ModuleStatus.RUNNING) {
+    ModuleStatus currentStatus = status(module);
+    if (currentStatus == ModuleStatus.NOT_CREATED) {
+      throw new InvalidModuleStateException("Module is not installed: " + module.getId());
+    }
+    if (currentStatus != ModuleStatus.RUNNING) {
       return;
     }
     dockerClient.stopContainerCmd(module.getId()).exec();
+  }
+
+  @Override
+  public void remove(ModuleDefinition module) {
+    ModuleStatus currentStatus = status(module);
+    if (currentStatus == ModuleStatus.NOT_CREATED) {
+      throw new InvalidModuleStateException("Module is not installed: " + module.getId());
+    }
+    if (currentStatus == ModuleStatus.RUNNING) {
+      throw new InvalidModuleStateException("Module is currently running and must be stopped before removal: " + module.getId());
+    }
+    dockerClient.removeContainerCmd(module.getId()).exec();
   }
 }
