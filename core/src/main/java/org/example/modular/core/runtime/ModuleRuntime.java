@@ -13,4 +13,6 @@ public interface ModuleRuntime {
   void stop(ModuleDefinition module);
 
   void remove(ModuleDefinition module);
+
+  String getLogs(ModuleDefinition module);
 }

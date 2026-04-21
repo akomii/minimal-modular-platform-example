@@ -1,10 +1,12 @@
 package org.example.modular.core.runtime;
 
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.async.ResultCallback;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.PullImageResultCallback;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.Frame;
 import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.api.model.Ports;
 import com.github.dockerjava.api.model.Ports.Binding;
@@ -167,5 +169,29 @@ public class DockerJavaRuntime implements ModuleRuntime {
     }
     dockerClient.removeContainerCmd(module.getId()).exec();
     log.info("Successfully removed module {}", module.getId());
+  }
+
+  @Override
+  public String getLogs(ModuleDefinition module) {
+    if (status(module) == ModuleStatus.NOT_CREATED) {
+      return "Module not installed";
+    }
+    StringBuilder logBuilder = new StringBuilder();
+    try {
+      dockerClient.logContainerCmd(module.getId())
+          .withStdOut(true)
+          .withStdErr(true)
+          .withTail(100)
+          .exec(new ResultCallback.Adapter<Frame>() {
+            @Override
+            public void onNext(Frame item) {
+              logBuilder.append(new String(item.getPayload()));
+            }
+          }).awaitCompletion();
+      return logBuilder.toString();
+    } catch (Exception e) {
+      log.error("Failed to fetch logs for {}", module.getId(), e);
+      return "Error fetching logs: " + e.getMessage();
+    }
   }
 }

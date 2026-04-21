@@ -57,4 +57,10 @@ public class ModuleController {
     runtime.remove(module);
     return ModuleDTO.from(module, runtime);
   }
+
+  @GetMapping(value = "/{id}/logs", produces = "text/plain")
+  public String getLogs(@PathVariable String id) {
+    ModuleDefinition module = catalog.byId(id);
+    return runtime.getLogs(module);
+  }
 }
