@@ -1,5 +1,5 @@
 {
-  "id": "cache-server",
+  "id": "redis",
   "version": "7.2.4",
   "type": "container",
   "deployment": "registry.hub.docker.com/library/redis:alpine",
