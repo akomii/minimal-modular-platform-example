@@ -2,6 +2,7 @@ package org.example.modular.core.runtime;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
+import com.github.dockerjava.api.command.PullImageResultCallback;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.HostConfig;
@@ -56,7 +57,21 @@ public class DockerJavaRuntime implements ModuleRuntime {
     if (status(module) != ModuleStatus.NOT_CREATED) {
       throw new InvalidModuleStateException("Module is already installed: " + module.getId());
     }
+    pullImage(module.getImage());
     createContainer(module);
+  }
+
+  private void pullImage(String imageName) {
+    try {
+      dockerClient.pullImageCmd(imageName)
+          .exec(new PullImageResultCallback())
+          .awaitCompletion();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException("Image pull interrupted for: " + imageName, e);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to pull image: " + imageName, e);
+    }
   }
 
   private void createContainer(ModuleDefinition module) {
