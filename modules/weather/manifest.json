@@ -1,0 +1,16 @@
+{
+  "id": "weather",
+  "version": "1.0.0",
+  "type": "container",
+  "deployment": "registry.hub.docker.com/library/hello-world:nanoserver",
+  "image": "hello-world:nanoserver",
+  "ports": [
+    "8080:80"
+  ],
+  "db": {
+    "schema": "mod_weather",
+    "coreAccess": "write",
+    "up": "weather/up.sql",
+    "down": "weather/down.sql"
+  }
+}

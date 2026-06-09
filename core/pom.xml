@@ -109,7 +109,7 @@
           </execution>
         </executions>
       </plugin>
-      <!-- copy manifests from resources/manifests/ to target/modules during build -->
+      <!-- copy the modules/ tree (manifests + sql) to target/modules during build -->
       <plugin>
         <artifactId>maven-resources-plugin</artifactId>
         <version>3.3.1</version>
@@ -124,10 +124,7 @@
               <outputDirectory>${project.build.directory}/modules</outputDirectory>
               <resources>
                 <resource>
-                  <directory>src/main/resources/manifests</directory>
-                  <includes>
-                    <include>*.json</include>
-                  </includes>
+                  <directory>${project.basedir}/../modules</directory>
                 </resource>
               </resources>
             </configuration>
