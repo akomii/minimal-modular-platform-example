@@ -13,4 +13,14 @@ public class ModuleDefinition {
   private String deployment;
   private String image;
   private List<String> ports = new ArrayList<>();
+  private Db db;
+
+  @Data
+  public static class Db {
+
+    private String schema;
+    private String coreAccess = "none";
+    private String up;
+    private String down;
+  }
 }
