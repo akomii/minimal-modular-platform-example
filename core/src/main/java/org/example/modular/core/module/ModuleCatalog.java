@@ -6,9 +6,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
-import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -17,8 +17,6 @@ public class ModuleCatalog {
 
   private final String moduleDir;
   private final ObjectMapper objectMapper;
-
-  @Getter
   private final List<ModuleDefinition> modules = new ArrayList<>();
 
   public ModuleCatalog(@Value("${module.dir}") String moduleDir, ObjectMapper objectMapper) {
@@ -50,10 +48,14 @@ public class ModuleCatalog {
     }
   }
 
+  public List<ModuleDefinition> getModules() {
+    return Collections.unmodifiableList(modules);
+  }
+
   public ModuleDefinition byId(String id) {
     return modules.stream()
         .filter(module -> module.getId().equals(id))
         .findFirst()
-        .orElseThrow(() -> new IllegalArgumentException("Unknown module: " + id));
+        .orElseThrow(() -> new ModuleNotFoundException("Unknown module: " + id));
   }
 }

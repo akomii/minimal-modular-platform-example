@@ -1,7 +1,6 @@
 package org.example.modular.core.web;
 
 import org.example.modular.core.module.ModuleDefinition;
-import org.example.modular.core.runtime.ModuleRuntime;
 import org.example.modular.core.runtime.ModuleStatus;
 
 public record ModuleDTO(
@@ -11,12 +10,12 @@ public record ModuleDTO(
     ModuleStatus status
 ) {
 
-  public static ModuleDTO from(ModuleDefinition module, ModuleRuntime runtime) {
+  public static ModuleDTO from(ModuleDefinition module, ModuleStatus status) {
     return new ModuleDTO(
         module.getId(),
         module.getVersion(),
         module.getType(),
-        runtime.status(module)
+        status
     );
   }
 }

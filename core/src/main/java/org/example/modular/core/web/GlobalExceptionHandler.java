@@ -1,5 +1,6 @@
 package org.example.modular.core.web;
 
+import org.example.modular.core.module.ModuleNotFoundException;
 import org.example.modular.core.runtime.DockerConnectionException;
 import org.example.modular.core.runtime.InvalidModuleStateException;
 import org.springframework.http.HttpStatus;
@@ -20,5 +21,17 @@ public class GlobalExceptionHandler {
   public ResponseEntity<String> handleInvalidState(InvalidModuleStateException ex) {
     return ResponseEntity.status(HttpStatus.CONFLICT)
         .body("Conflict: " + ex.getMessage());
+  }
+
+  @ExceptionHandler(ModuleNotFoundException.class)
+  public ResponseEntity<String> handleNotFound(ModuleNotFoundException ex) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body("Not Found: " + ex.getMessage());
+  }
+
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<String> handleBadRequest(IllegalArgumentException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body("Bad Request: " + ex.getMessage());
   }
 }

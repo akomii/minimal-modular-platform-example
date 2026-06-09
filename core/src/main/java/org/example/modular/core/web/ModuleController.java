@@ -26,7 +26,7 @@ public class ModuleController {
   @GetMapping
   public List<ModuleDTO> list() {
     return catalog.getModules().stream()
-        .map(module -> ModuleDTO.from(module, runtime))
+        .map(module -> ModuleDTO.from(module, runtime.status(module)))
         .toList();
   }
 
@@ -34,28 +34,28 @@ public class ModuleController {
   public ModuleDTO install(@PathVariable String id) {
     ModuleDefinition module = catalog.byId(id);
     runtime.install(module);
-    return ModuleDTO.from(module, runtime);
+    return ModuleDTO.from(module, runtime.status(module));
   }
 
   @PostMapping("/{id}/start")
   public ModuleDTO start(@PathVariable String id) {
     ModuleDefinition module = catalog.byId(id);
     runtime.start(module);
-    return ModuleDTO.from(module, runtime);
+    return ModuleDTO.from(module, runtime.status(module));
   }
 
   @PostMapping("/{id}/stop")
   public ModuleDTO stop(@PathVariable String id) {
     ModuleDefinition module = catalog.byId(id);
     runtime.stop(module);
-    return ModuleDTO.from(module, runtime);
+    return ModuleDTO.from(module, runtime.status(module));
   }
 
   @DeleteMapping("/{id}")
   public ModuleDTO remove(@PathVariable String id) {
     ModuleDefinition module = catalog.byId(id);
     runtime.remove(module);
-    return ModuleDTO.from(module, runtime);
+    return ModuleDTO.from(module, runtime.status(module));
   }
 
   @GetMapping(value = "/{id}/logs", produces = "text/plain")

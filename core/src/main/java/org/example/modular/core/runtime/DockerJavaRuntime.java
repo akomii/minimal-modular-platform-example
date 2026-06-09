@@ -10,6 +10,7 @@ import com.github.dockerjava.api.model.Frame;
 import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.api.model.Ports;
 import com.github.dockerjava.api.model.Ports.Binding;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +34,7 @@ public class DockerJavaRuntime implements ModuleRuntime {
           .exec()
           .getState()
           .getStatus();
-      ModuleStatus status = ModuleStatus.fromDockerState(dockerState);
+      ModuleStatus status = toModuleStatus(dockerState);
       log.debug("Module {} status: {}", module.getId(), status);
       return status;
     } catch (NotFoundException exception) {
@@ -59,6 +60,17 @@ public class DockerJavaRuntime implements ModuleRuntime {
       current = current.getCause();
     }
     return false;
+  }
+
+  private static ModuleStatus toModuleStatus(String dockerState) {
+    if (dockerState == null) {
+      return ModuleStatus.UNKNOWN;
+    }
+    return switch (dockerState.toLowerCase()) {
+      case "running" -> ModuleStatus.RUNNING;
+      case "exited", "created", "dead" -> ModuleStatus.STOPPED;
+      default -> ModuleStatus.UNKNOWN;
+    };
   }
 
   @Override
@@ -185,7 +197,7 @@ public class DockerJavaRuntime implements ModuleRuntime {
           .exec(new ResultCallback.Adapter<Frame>() {
             @Override
             public void onNext(Frame item) {
-              logBuilder.append(new String(item.getPayload()));
+              logBuilder.append(new String(item.getPayload(), StandardCharsets.UTF_8));
             }
           }).awaitCompletion();
       return logBuilder.toString();
