@@ -27,6 +27,10 @@ public class ModuleProvisioner {
     repository.markAuthorized(module);
   }
 
+  public boolean isAuthorized(ModuleDefinition module) {
+    return repository.isAuthorized(module.getId());
+  }
+
   @Transactional
   public void provision(ModuleDefinition module) {
     ModuleDefinition.Db db = module.getDb();

@@ -29,7 +29,7 @@ public class ModuleController {
 
   @GetMapping
   public List<ModuleDTO> list() {
-    return catalog.getModules().stream().map(module -> ModuleDTO.from(module, runtime.status(module))).toList();
+    return catalog.getModules().stream().map(module -> ModuleDTO.from(module, runtime.status(module), provisioner.isAuthorized(module))).toList();
   }
 
   @PostMapping("/{id}/install")
@@ -37,28 +37,28 @@ public class ModuleController {
     ModuleDefinition module = catalog.byId(id);
     provisioner.provision(module);
     runtime.install(module);
-    return ModuleDTO.from(module, runtime.status(module));
+    return ModuleDTO.from(module, runtime.status(module), provisioner.isAuthorized(module));
   }
 
   @PostMapping("/{id}/authorize")
   public ModuleDTO authorize(@PathVariable String id) {
     ModuleDefinition module = catalog.byId(id);
     provisioner.authorize(module);
-    return ModuleDTO.from(module, runtime.status(module));
+    return ModuleDTO.from(module, runtime.status(module), provisioner.isAuthorized(module));
   }
 
   @PostMapping("/{id}/start")
   public ModuleDTO start(@PathVariable String id) {
     ModuleDefinition module = catalog.byId(id);
     runtime.start(module);
-    return ModuleDTO.from(module, runtime.status(module));
+    return ModuleDTO.from(module, runtime.status(module), provisioner.isAuthorized(module));
   }
 
   @PostMapping("/{id}/stop")
   public ModuleDTO stop(@PathVariable String id) {
     ModuleDefinition module = catalog.byId(id);
     runtime.stop(module);
-    return ModuleDTO.from(module, runtime.status(module));
+    return ModuleDTO.from(module, runtime.status(module), provisioner.isAuthorized(module));
   }
 
   @DeleteMapping("/{id}")
@@ -68,7 +68,7 @@ public class ModuleController {
       provisioner.purge(module);
     }
     runtime.remove(module);
-    return ModuleDTO.from(module, runtime.status(module));
+    return ModuleDTO.from(module, runtime.status(module), provisioner.isAuthorized(module));
   }
 
   @GetMapping(value = "/{id}/logs", produces = "text/plain")
