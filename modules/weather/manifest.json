@@ -2,10 +2,10 @@
   "id": "weather",
   "version": "1.0.0",
   "type": "container",
-  "deployment": "registry.hub.docker.com/library/hello-world:nanoserver",
-  "image": "hello-world:nanoserver",
+  "deployment": "registry.hub.docker.com/library/hello-world:linux",
+  "image": "hello-world:linux",
   "ports": [
-    "8080:80"
+    "80:8080"
   ],
   "db": {
     "schema": "mod_weather",
