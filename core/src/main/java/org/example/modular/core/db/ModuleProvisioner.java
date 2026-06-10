@@ -38,14 +38,21 @@ public class ModuleProvisioner {
       log.debug("Module {} declares no database needs", module.getId());
       return;
     }
-    String role = roleName(module);
+    if (repository.isInstalled(module.getId())) {
+      log.info("Module {} is already provisioned; reusing existing schema and data", module.getId());
+      return;
+    }
     String access = db.getCoreAccess();
+    if ("write".equals(access) && !repository.isAuthorized(module.getId())) {
+      throw new ModuleNotAuthorizedException("Module not authorized for core write access: " + module.getId());
+    }
+    String role = roleName(module);
     log.info("Provisioning module {} (schema={}, coreAccess={})", module.getId(), db.getSchema(), access);
     scripts.createModuleRole(role, db.getSchema());
     if ("read".equals(access) || "write".equals(access)) {
       scripts.grantCoreRead(role);
     }
-    if ("write".equals(access) && repository.isAuthorized(module.getId())) {
+    if ("write".equals(access)) {
       scripts.grantCoreWrite(role);
     }
     repository.markInstalled(module);

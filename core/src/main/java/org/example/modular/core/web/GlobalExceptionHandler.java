@@ -1,5 +1,6 @@
 package org.example.modular.core.web;
 
+import org.example.modular.core.db.ModuleNotAuthorizedException;
 import org.example.modular.core.module.ModuleNotFoundException;
 import org.example.modular.core.runtime.DockerConnectionException;
 import org.example.modular.core.runtime.InvalidModuleStateException;
@@ -15,6 +16,12 @@ public class GlobalExceptionHandler {
   public ResponseEntity<String> handleConnectionError(DockerConnectionException ex) {
     return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
         .body("Service Unavailable: " + ex.getMessage());
+  }
+
+  @ExceptionHandler(ModuleNotAuthorizedException.class)
+  public ResponseEntity<String> handleNotAuthorized(ModuleNotAuthorizedException ex) {
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .body("Unauthorized: " + ex.getMessage());
   }
 
   @ExceptionHandler(InvalidModuleStateException.class)
