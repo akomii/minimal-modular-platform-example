@@ -1,0 +1,70 @@
+{
+  "realm": "modular",
+  "enabled": true,
+  "roles": {
+    "realm": [
+      { "name": "platform-admin", "description": "Full access to the modular platform API" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "core",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "dev-core-secret",
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": [
+        "http://localhost:8080/login/oauth2/code/keycloak",
+        "http://localhost:5173/login/oauth2/code/keycloak"
+      ],
+      "webOrigins": [
+        "http://localhost:8080",
+        "http://localhost:5173"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:8080/*##http://localhost:5173/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Platform",
+      "lastName": "Admin",
+      "credentials": [
+        { "type": "password", "value": "admin", "temporary": false }
+      ],
+      "realmRoles": [ "default-roles-modular", "platform-admin" ]
+    },
+    {
+      "username": "guest",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "No",
+      "lastName": "Access",
+      "credentials": [
+        { "type": "password", "value": "guest", "temporary": false }
+      ],
+      "realmRoles": [ "default-roles-modular" ]
+    }
+  ]
+}
