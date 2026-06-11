@@ -54,7 +54,10 @@ public class ModuleProvisioner {
     String role = roleName(module);
     log.info("Provisioning module {} (schema={}, coreAccess={})", module.getId(), db.getSchema(), access);
     String password = UUID.randomUUID().toString();
-    scripts.createModuleRole(role, db.getSchema(), password);
+    scripts.createModuleRole(role, password);
+    if (db.getSchema() != null && !db.getSchema().isBlank()) {
+      scripts.createModuleSchema(db.getSchema(), role);
+    }
     switch (access) {
       case NONE -> { /* own schema only, no core grants */ }
       case READ -> scripts.grantCoreRead(role);

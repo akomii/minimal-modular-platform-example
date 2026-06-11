@@ -15,13 +15,16 @@ public class ModuleScriptRunner {
     this.jdbc = jdbc;
   }
 
-  public void createModuleRole(String role, String schema, String password) {
+  public void createModuleRole(String role, String password) {
     Integer count = jdbc.queryForObject("SELECT count(*) FROM pg_roles WHERE rolname = ?", Integer.class, role);
     if (count == null || count == 0) {
       jdbc.execute("CREATE ROLE " + quoteIdent(role) + " LOGIN PASSWORD " + quoteLiteral(password));
     } else {
       jdbc.execute("ALTER ROLE " + quoteIdent(role) + " WITH LOGIN PASSWORD " + quoteLiteral(password));
     }
+  }
+
+  public void createModuleSchema(String schema, String role) {
     jdbc.execute("CREATE SCHEMA " + quoteIdent(schema) + " AUTHORIZATION " + quoteIdent(role));
   }
 
@@ -36,7 +39,8 @@ public class ModuleScriptRunner {
 
   public void runScriptAs(String role, String schema, String sql) {
     jdbc.execute("SET LOCAL ROLE " + quoteIdent(role));
-    jdbc.execute("SET LOCAL search_path TO " + quoteIdent(schema) + ", core");
+    String searchPath = schema == null || schema.isBlank() ? "core" : quoteIdent(schema) + ", core";
+    jdbc.execute("SET LOCAL search_path TO " + searchPath);
     jdbc.execute(sql);
     // restore the core role; SET LOCAL would otherwise keep later statements in the same
     // transaction running as the module role
