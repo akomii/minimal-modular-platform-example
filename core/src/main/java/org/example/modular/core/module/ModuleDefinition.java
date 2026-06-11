@@ -19,7 +19,7 @@ public class ModuleDefinition {
   public static class Db {
 
     private String schema;
-    private String coreAccess = "none";
+    private CoreAccess coreAccess = CoreAccess.NONE;
     private String up;
     private String down;
   }

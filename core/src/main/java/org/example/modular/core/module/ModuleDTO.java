@@ -7,12 +7,12 @@ public record ModuleDTO(
     String version,
     String type,
     ModuleStatus status,
-    String coreAccess,
+    CoreAccess coreAccess,
     boolean authorized
 ) {
 
   public static ModuleDTO from(ModuleDefinition module, ModuleStatus status, boolean authorized) {
-    String coreAccess = module.getDb() != null ? module.getDb().getCoreAccess() : "none";
+    CoreAccess coreAccess = module.getDb() != null ? module.getDb().getCoreAccess() : CoreAccess.NONE;
     return new ModuleDTO(
         module.getId(),
         module.getVersion(),
