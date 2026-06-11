@@ -1,0 +1,60 @@
+<script setup lang="ts">
+import { computed, ref } from "vue"
+import Tabs from "primevue/tabs"
+import TabList from "primevue/tablist"
+import Tab from "primevue/tab"
+import TabPanels from "primevue/tabpanels"
+import TabPanel from "primevue/tabpanel"
+import RequestLogView from "./RequestLogView.vue"
+import LogConsole from "./LogConsole.vue"
+import { useModules } from "../composables/useModules"
+
+const { modules } = useModules()
+const active = ref("requests")
+
+// installed = container exists (status != NOT_CREATED); docker logs work for stopped ones too.
+const installed = computed(() =>
+  modules.value.filter((module) => module.status !== "NOT_CREATED")
+)
+</script>
+
+<template>
+  <div class="logs-panel">
+    <Tabs :value="active" @update:value="active = String($event)">
+      <TabList>
+        <Tab value="requests">Requests</Tab>
+        <Tab value="server">Server</Tab>
+        <Tab v-for="module in installed" :key="module.id" :value="module.id">{{
+          module.id
+        }}</Tab>
+      </TabList>
+      <TabPanels>
+        <TabPanel value="requests">
+          <RequestLogView :active="active === 'requests'" />
+        </TabPanel>
+        <TabPanel value="server">
+          <LogConsole
+            url="/api/server/logs/stream"
+            :active="active === 'server'"
+          />
+        </TabPanel>
+        <TabPanel
+          v-for="module in installed"
+          :key="module.id"
+          :value="module.id"
+        >
+          <LogConsole
+            :url="`/api/modules/${module.id}/logs/stream`"
+            :active="active === module.id"
+          />
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
+  </div>
+</template>
+
+<style scoped>
+.logs-panel {
+  margin-top: 0;
+}
+</style>
