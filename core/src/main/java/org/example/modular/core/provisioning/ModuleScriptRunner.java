@@ -1,27 +1,26 @@
 package org.example.modular.core.provisioning;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
+@Transactional(propagation = Propagation.MANDATORY)
 public class ModuleScriptRunner {
 
   private final JdbcTemplate jdbc;
-  private final String modulesDir;
 
-  public ModuleScriptRunner(JdbcTemplate jdbc, @Value("${modules.dir}") String modulesDir) {
+  public ModuleScriptRunner(JdbcTemplate jdbc) {
     this.jdbc = jdbc;
-    this.modulesDir = modulesDir;
   }
 
-  public void createModuleRole(String role, String schema) {
+  public void createModuleRole(String role, String schema, String password) {
     Integer count = jdbc.queryForObject("SELECT count(*) FROM pg_roles WHERE rolname = ?", Integer.class, role);
     if (count == null || count == 0) {
-      jdbc.execute("CREATE ROLE " + quoteIdent(role) + " NOLOGIN");
+      jdbc.execute("CREATE ROLE " + quoteIdent(role) + " LOGIN PASSWORD " + quoteLiteral(password));
+    } else {
+      jdbc.execute("ALTER ROLE " + quoteIdent(role) + " WITH LOGIN PASSWORD " + quoteLiteral(password));
     }
     jdbc.execute("CREATE SCHEMA " + quoteIdent(schema) + " AUTHORIZATION " + quoteIdent(role));
   }
@@ -35,20 +34,13 @@ public class ModuleScriptRunner {
     jdbc.execute("GRANT core_owner TO " + quoteIdent(role));
   }
 
-  public void runScriptAs(String role, String schema, String relativePath) {
-    if (relativePath == null || relativePath.isBlank()) {
-      return;
-    }
-    Path file = Paths.get(modulesDir, relativePath);
-    String sql;
-    try {
-      sql = Files.readString(file);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to read SQL script: " + file, e);
-    }
+  public void runScriptAs(String role, String schema, String sql) {
     jdbc.execute("SET LOCAL ROLE " + quoteIdent(role));
     jdbc.execute("SET LOCAL search_path TO " + quoteIdent(schema) + ", core");
     jdbc.execute(sql);
+    // restore the core role; SET LOCAL would otherwise keep later statements in the same
+    // transaction running as the module role
+    jdbc.execute("RESET ROLE");
   }
 
   public void dropModule(String role) {
@@ -59,5 +51,9 @@ public class ModuleScriptRunner {
 
   private static String quoteIdent(String ident) {
     return "\"" + ident.replace("\"", "\"\"") + "\"";
+  }
+
+  private static String quoteLiteral(String value) {
+    return "'" + value.replace("'", "''") + "'";
   }
 }

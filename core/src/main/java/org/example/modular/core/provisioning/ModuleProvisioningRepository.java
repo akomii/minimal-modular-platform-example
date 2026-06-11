@@ -15,15 +15,21 @@ public class ModuleProvisioningRepository {
   }
 
   public void markAuthorized(ModuleDefinition module) {
-    jdbc.update(
-        "INSERT INTO core.module_provisioning (module_id, schema_name, core_access, authorized) VALUES (?, ?, ?, true) ON CONFLICT (module_id) DO UPDATE SET authorized = true, "
-            + "schema_name = EXCLUDED.schema_name, core_access = EXCLUDED.core_access", module.getId(), module.getDb().getSchema(), module.getDb().getCoreAccess());
+    jdbc.update("""
+        INSERT INTO core.module_provisioning (module_id, schema_name, core_access, authorized)
+        VALUES (?, ?, ?, true)
+        ON CONFLICT (module_id) DO UPDATE
+        SET authorized = true, schema_name = EXCLUDED.schema_name, core_access = EXCLUDED.core_access
+        """, module.getId(), module.getDb().getSchema(), module.getDb().getCoreAccess().toString());
   }
 
-  public void markInstalled(ModuleDefinition module) {
-    jdbc.update(
-        "INSERT INTO core.module_provisioning (module_id, schema_name, core_access, installed_at) VALUES (?, ?, ?, now()) ON CONFLICT (module_id) DO UPDATE SET installed_at = now(), "
-            + "schema_name = EXCLUDED.schema_name, core_access = EXCLUDED.core_access", module.getId(), module.getDb().getSchema(), module.getDb().getCoreAccess());
+  public void markInstalled(ModuleDefinition module, String dbPassword) {
+    jdbc.update("""
+        INSERT INTO core.module_provisioning (module_id, schema_name, core_access, installed_at, db_password)
+        VALUES (?, ?, ?, now(), ?)
+        ON CONFLICT (module_id) DO UPDATE
+        SET installed_at = now(), schema_name = EXCLUDED.schema_name, core_access = EXCLUDED.core_access, db_password = EXCLUDED.db_password
+        """, module.getId(), module.getDb().getSchema(), module.getDb().getCoreAccess().toString(), dbPassword);
   }
 
   public boolean isAuthorized(String moduleId) {

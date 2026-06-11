@@ -1,6 +1,9 @@
 package org.example.modular.core.provisioning;
 
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.example.modular.core.module.CoreAccess;
+import org.example.modular.core.module.ModuleCatalog;
 import org.example.modular.core.module.ModuleDefinition;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,10 +12,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ModuleProvisioner {
 
+  private final ModuleCatalog catalog;
   private final ModuleScriptRunner scripts;
   private final ModuleProvisioningRepository repository;
 
-  public ModuleProvisioner(ModuleScriptRunner scripts, ModuleProvisioningRepository repository) {
+  public ModuleProvisioner(ModuleCatalog catalog, ModuleScriptRunner scripts, ModuleProvisioningRepository repository) {
+    this.catalog = catalog;
     this.scripts = scripts;
     this.repository = repository;
   }
@@ -20,10 +25,10 @@ public class ModuleProvisioner {
   @Transactional
   public void authorize(ModuleDefinition module) {
     ModuleDefinition.Db db = module.getDb();
-    if (db == null || !"write".equals(db.getCoreAccess())) {
-      throw new IllegalArgumentException("Module does not request core write access: " + module.getId());
+    if (db == null || db.getCoreAccess() == CoreAccess.NONE) {
+      throw new IllegalArgumentException("Module does not request core access: " + module.getId());
     }
-    log.info("Authorizing core write access for module {}", module.getId());
+    log.info("Authorizing core {} access for module {}", db.getCoreAccess(), module.getId());
     repository.markAuthorized(module);
   }
 
@@ -42,21 +47,24 @@ public class ModuleProvisioner {
       log.info("Module {} is already provisioned; reusing existing schema and data", module.getId());
       return;
     }
-    String access = db.getCoreAccess();
-    if ("write".equals(access) && !repository.isAuthorized(module.getId())) {
-      throw new ModuleNotAuthorizedException("Module not authorized for core write access: " + module.getId());
+    CoreAccess access = db.getCoreAccess();
+    if (access != CoreAccess.NONE && !repository.isAuthorized(module.getId())) {
+      throw new ModuleNotAuthorizedException("Module not authorized for core " + access + " access: " + module.getId());
     }
     String role = roleName(module);
     log.info("Provisioning module {} (schema={}, coreAccess={})", module.getId(), db.getSchema(), access);
-    scripts.createModuleRole(role, db.getSchema());
-    if ("read".equals(access) || "write".equals(access)) {
-      scripts.grantCoreRead(role);
+    String password = UUID.randomUUID().toString();
+    scripts.createModuleRole(role, db.getSchema(), password);
+    switch (access) {
+      case NONE -> { /* own schema only, no core grants */ }
+      case READ -> scripts.grantCoreRead(role);
+      case WRITE -> {
+        scripts.grantCoreRead(role);
+        scripts.grantCoreWrite(role);
+      }
     }
-    if ("write".equals(access)) {
-      scripts.grantCoreWrite(role);
-    }
-    repository.markInstalled(module);
-    scripts.runScriptAs(role, db.getSchema(), db.getUp());
+    runScript(db, role, db.getUp());
+    repository.markInstalled(module, password);
   }
 
   @Transactional
@@ -71,9 +79,16 @@ public class ModuleProvisioner {
     }
     String role = roleName(module);
     log.info("Purging database for module {}", module.getId());
-    scripts.runScriptAs(role, db.getSchema(), db.getDown());
+    runScript(db, role, db.getDown());
     scripts.dropModule(role);
     repository.delete(module.getId());
+  }
+
+  private void runScript(ModuleDefinition.Db db, String role, String relativePath) {
+    if (relativePath == null || relativePath.isBlank()) {
+      return;
+    }
+    scripts.runScriptAs(role, db.getSchema(), catalog.readScript(relativePath));
   }
 
   private static String roleName(ModuleDefinition module) {
