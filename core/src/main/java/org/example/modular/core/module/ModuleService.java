@@ -1,7 +1,9 @@
 package org.example.modular.core.module;
 
+import java.io.Closeable;
 import java.util.List;
 import org.example.modular.core.provisioning.ModuleProvisioner;
+import org.example.modular.core.runtime.LogSink;
 import org.example.modular.core.runtime.ModuleRuntime;
 import org.springframework.stereotype.Service;
 
@@ -58,6 +60,10 @@ public class ModuleService {
 
   public String logs(String id) {
     return runtime.getLogs(catalog.byId(id));
+  }
+
+  public Closeable streamLogs(String id, LogSink sink) {
+    return runtime.streamLogs(catalog.byId(id), sink);
   }
 
   private ModuleDTO state(ModuleDefinition module) {

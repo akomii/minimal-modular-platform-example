@@ -10,6 +10,7 @@ import com.github.dockerjava.api.model.Frame;
 import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.api.model.Ports;
 import com.github.dockerjava.api.model.Ports.Binding;
+import java.io.Closeable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -181,6 +182,36 @@ public class DockerJavaRuntime implements ModuleRuntime {
     }
     dockerClient.removeContainerCmd(module.getId()).exec();
     log.info("Successfully removed module {}", module.getId());
+  }
+
+  @Override
+  public Closeable streamLogs(ModuleDefinition module, LogSink sink) {
+    if (status(module) == ModuleStatus.NOT_CREATED) {
+      throw new InvalidModuleStateException("Module is not installed: " + module.getId());
+    }
+    log.info("Streaming logs for module {}", module.getId());
+    ResultCallback.Adapter<Frame> callback = new ResultCallback.Adapter<>() {
+      @Override
+      public void onNext(Frame frame) {
+        sink.line(new String(frame.getPayload(), StandardCharsets.UTF_8));
+      }
+
+      @Override
+      public void onComplete() {
+        sink.complete();
+      }
+
+      @Override
+      public void onError(Throwable throwable) {
+        sink.error(throwable);
+      }
+    };
+    return dockerClient.logContainerCmd(module.getId())
+        .withStdOut(true)
+        .withStdErr(true)
+        .withFollowStream(true)
+        .withTail(100)
+        .exec(callback);
   }
 
   @Override

@@ -1,5 +1,7 @@
 package org.example.modular.core.module;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.List;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -8,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api/modules")
@@ -52,5 +55,22 @@ public class ModuleController {
   @GetMapping(value = "/{id}/logs", produces = "text/plain")
   public String getLogs(@PathVariable String id) {
     return service.logs(id);
+  }
+
+  @GetMapping(value = "/{id}/logs/stream", produces = "text/event-stream")
+  public SseEmitter streamLogs(@PathVariable String id) {
+    SseEmitter emitter = new SseEmitter(0L);
+    Closeable handle = service.streamLogs(id, new SseEmitterLogSink(emitter));
+    emitter.onCompletion(() -> closeQuietly(handle));
+    emitter.onTimeout(() -> closeQuietly(handle));
+    return emitter;
+  }
+
+  private static void closeQuietly(Closeable closeable) {
+    try {
+      closeable.close();
+    } catch (IOException ignored) {
+      // stop the docker log follow on client disconnect
+    }
   }
 }

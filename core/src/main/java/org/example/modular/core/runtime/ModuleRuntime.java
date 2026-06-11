@@ -1,5 +1,6 @@
 package org.example.modular.core.runtime;
 
+import java.io.Closeable;
 import org.example.modular.core.module.ModuleDefinition;
 
 public interface ModuleRuntime {
@@ -15,4 +16,6 @@ public interface ModuleRuntime {
   void remove(ModuleDefinition module);
 
   String getLogs(ModuleDefinition module);
+
+  Closeable streamLogs(ModuleDefinition module, LogSink sink);
 }
