@@ -1,4 +1,4 @@
-package org.example.modular.core.db;
+package org.example.modular.core.provisioning;
 
 import java.util.List;
 import org.example.modular.core.module.ModuleDefinition;

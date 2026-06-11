@@ -1,4 +1,4 @@
-package org.example.modular.core.db;
+package org.example.modular.core.provisioning;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.modular.core.module.ModuleDefinition;

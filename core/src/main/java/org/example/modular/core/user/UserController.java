@@ -1,4 +1,4 @@
-package org.example.modular.core.web;
+package org.example.modular.core.user;
 
 import java.util.List;
 import org.springframework.security.core.Authentication;

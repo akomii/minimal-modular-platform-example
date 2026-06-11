@@ -1,6 +1,5 @@
-package org.example.modular.core.web;
+package org.example.modular.core.module;
 
-import org.example.modular.core.module.ModuleDefinition;
 import org.example.modular.core.runtime.ModuleStatus;
 
 public record ModuleDTO(

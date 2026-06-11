@@ -1,7 +1,7 @@
 package org.example.modular.core.web;
 
-import org.example.modular.core.db.ModuleNotAuthorizedException;
 import org.example.modular.core.module.ModuleNotFoundException;
+import org.example.modular.core.provisioning.ModuleNotAuthorizedException;
 import org.example.modular.core.runtime.DockerConnectionException;
 import org.example.modular.core.runtime.InvalidModuleStateException;
 import org.springframework.http.HttpStatus;

@@ -1,9 +1,7 @@
-package org.example.modular.core.web;
+package org.example.modular.core.module;
 
 import java.util.List;
-import org.example.modular.core.db.ModuleProvisioner;
-import org.example.modular.core.module.ModuleCatalog;
-import org.example.modular.core.module.ModuleDefinition;
+import org.example.modular.core.provisioning.ModuleProvisioner;
 import org.example.modular.core.runtime.ModuleRuntime;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;

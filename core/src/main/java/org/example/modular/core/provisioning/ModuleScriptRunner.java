@@ -1,4 +1,4 @@
-package org.example.modular.core.db;
+package org.example.modular.core.provisioning;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
