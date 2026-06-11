@@ -15,18 +15,18 @@ import org.springframework.stereotype.Service;
 @Service
 public class ModuleCatalog {
 
-  private final String moduleDir;
+  private final String modulesDir;
   private final ObjectMapper objectMapper;
   private final List<ModuleDefinition> modules = new ArrayList<>();
 
-  public ModuleCatalog(@Value("${module.dir}") String moduleDir, ObjectMapper objectMapper) {
-    this.moduleDir = moduleDir;
+  public ModuleCatalog(@Value("${modules.dir}") String modulesDir, ObjectMapper objectMapper) {
+    this.modulesDir = modulesDir;
     this.objectMapper = objectMapper;
   }
 
   @PostConstruct
   public void loadModules() {
-    Path path = Paths.get(moduleDir);
+    Path path = Paths.get(modulesDir);
     if (!Files.exists(path)) {
       throw new IllegalStateException("Module directory not found: " + path.toAbsolutePath());
     }
@@ -35,7 +35,7 @@ public class ModuleCatalog {
           .filter(p -> p.toString().endsWith(".json"))
           .forEach(this::loadManifest);
     } catch (Exception e) {
-      throw new RuntimeException("Failed to load modules from " + moduleDir, e);
+      throw new RuntimeException("Failed to load modules from " + modulesDir, e);
     }
   }
 

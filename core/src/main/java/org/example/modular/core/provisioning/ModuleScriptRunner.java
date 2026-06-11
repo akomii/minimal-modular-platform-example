@@ -11,11 +11,11 @@ import org.springframework.stereotype.Component;
 public class ModuleScriptRunner {
 
   private final JdbcTemplate jdbc;
-  private final String moduleDir;
+  private final String modulesDir;
 
-  public ModuleScriptRunner(JdbcTemplate jdbc, @Value("${module.dir}") String moduleDir) {
+  public ModuleScriptRunner(JdbcTemplate jdbc, @Value("${modules.dir}") String modulesDir) {
     this.jdbc = jdbc;
-    this.moduleDir = moduleDir;
+    this.modulesDir = modulesDir;
   }
 
   public void createModuleRole(String role, String schema) {
@@ -39,7 +39,7 @@ public class ModuleScriptRunner {
     if (relativePath == null || relativePath.isBlank()) {
       return;
     }
-    Path file = Paths.get(moduleDir, relativePath);
+    Path file = Paths.get(modulesDir, relativePath);
     String sql;
     try {
       sql = Files.readString(file);
