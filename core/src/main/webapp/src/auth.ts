@@ -31,7 +31,8 @@ export async function probeModules(): Promise<ModuleAccess> {
 }
 
 export function login(): void {
-  window.location.href = "/oauth2/authorization/keycloak"
+  // "idp" is the Spring OAuth2 client registration id (provider-agnostic, see application.properties)
+  window.location.href = "/oauth2/authorization/idp"
 }
 
 export async function logout(): Promise<void> {

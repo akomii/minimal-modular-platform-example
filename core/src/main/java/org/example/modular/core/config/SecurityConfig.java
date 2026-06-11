@@ -19,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -43,6 +44,14 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @EnableWebSecurity
 public class SecurityConfig {
 
+  private static final String PLATFORM_ADMIN = "PLATFORM_ADMIN";
+
+  private final IdpRoleExtractor roleExtractor;
+
+  public SecurityConfig(IdpRoleExtractor roleExtractor) {
+    this.roleExtractor = roleExtractor;
+  }
+
   /**
    * API clients (e.g. Postman) that send a {@code Authorization: Bearer <jwt>} header are authenticated statelessly as an OAuth2 resource server. This chain only matches such requests; everything
    * else falls through to the BFF chain below.
@@ -52,10 +61,10 @@ public class SecurityConfig {
   SecurityFilterChain apiTokenFilterChain(HttpSecurity http) throws Exception {
     http
         .securityMatcher(bearerTokenRequests())
-        .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/api/user").authenticated()
-            .requestMatchers("/api/modules/**").hasRole("PLATFORM_ADMIN")
-            .anyRequest().authenticated())
+        .authorizeHttpRequests(auth -> {
+          apiAuthorizationRules(auth);
+          auth.anyRequest().authenticated();
+        })
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .csrf(csrf -> csrf.disable())
         .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
@@ -69,18 +78,16 @@ public class SecurityConfig {
   @Order(2)
   SecurityFilterChain bffFilterChain(HttpSecurity http) throws Exception {
     http
-        .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/", "/index.html", "/favicon.ico", "/assets/**", "/error").permitAll()
-            // any authenticated user may read who they are (drives the SPA's login-vs-no-access UX)
-            .requestMatchers("/api/user").authenticated()
-            // the platform endpoints additionally require the platform-admin role
-            .requestMatchers("/api/modules/**").hasRole("PLATFORM_ADMIN")
-            .anyRequest().authenticated())
+        .authorizeHttpRequests(auth -> {
+          auth.requestMatchers("/", "/index.html", "/favicon.ico", "/assets/**", "/error").permitAll();
+          apiAuthorizationRules(auth);
+          auth.anyRequest().authenticated();
+        })
         .oauth2Login(Customizer.withDefaults())
         // local app logout: clear the server session and return 204 (no IdP round-trip)
         .logout(logout -> logout
             .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)))
-        // API calls get a 401 they can react to, instead of a 302 redirect to Keycloak
+        // API calls get a 401 they can react to, instead of a 302 redirect to the IdP
         .exceptionHandling(ex -> ex.defaultAuthenticationEntryPointFor(
             new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
             PathPatternRequestMatcher.withDefaults().matcher("/api/**")))
@@ -90,6 +97,16 @@ public class SecurityConfig {
             .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
         .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class);
     return http.build();
+  }
+
+  private static void apiAuthorizationRules(AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth) {
+    auth
+        // any authenticated user may read who they are (drives the SPA's login-vs-no-access UX)
+        .requestMatchers("/api/user").authenticated()
+        // the platform endpoints additionally require the platform-admin role
+        .requestMatchers("/api/modules/**").hasRole(PLATFORM_ADMIN)
+        // observability streams (request log, server log) are admin-only too
+        .requestMatchers("/api/requests/**", "/api/server/**").hasRole(PLATFORM_ADMIN);
   }
 
   /**
@@ -103,17 +120,17 @@ public class SecurityConfig {
   }
 
   /**
-   * Maps Keycloak realm roles from a validated Bearer JWT into Spring authorities.
+   * Maps identity-provider roles from a validated Bearer JWT into Spring authorities.
    */
-  private static JwtAuthenticationConverter jwtAuthenticationConverter() {
+  private JwtAuthenticationConverter jwtAuthenticationConverter() {
     JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-    converter.setJwtGrantedAuthoritiesConverter(jwt -> realmRoleAuthorities(jwt.getClaims()));
+    converter.setJwtGrantedAuthoritiesConverter(jwt -> roleAuthorities(jwt.getClaims()));
     return converter;
   }
 
   /**
-   * Keycloak realm roles arrive in the {@code realm_access.roles} claim; the default OIDC login does not turn them into Spring authorities. Map each role to {@code ROLE_<UPPER_SNAKE>} so
-   * {@code hasRole("PLATFORM_ADMIN")} matches the {@code platform-admin} realm role.
+   * The default OIDC login does not turn identity-provider roles into Spring authorities. Extract them via {@link IdpRoleExtractor} and map each role to {@code ROLE_<UPPER_SNAKE>} so
+   * {@code hasRole("PLATFORM_ADMIN")} matches an IdP role named {@code platform-admin}.
    */
   @Bean
   GrantedAuthoritiesMapper userAuthoritiesMapper() {
@@ -121,9 +138,9 @@ public class SecurityConfig {
       Set<GrantedAuthority> mapped = new HashSet<>(authorities);
       authorities.forEach(authority -> {
         if (authority instanceof OidcUserAuthority oidc) {
-          mapped.addAll(realmRoleAuthorities(oidc.getIdToken().getClaims()));
+          mapped.addAll(roleAuthorities(oidc.getIdToken().getClaims()));
           if (oidc.getUserInfo() != null) {
-            mapped.addAll(realmRoleAuthorities(oidc.getUserInfo().getClaims()));
+            mapped.addAll(roleAuthorities(oidc.getUserInfo().getClaims()));
           }
         }
       });
@@ -131,14 +148,14 @@ public class SecurityConfig {
     };
   }
 
-  private static Collection<GrantedAuthority> realmRoleAuthorities(Map<String, Object> claims) {
+  /**
+   * Normalizes the extracted role names to {@code ROLE_<UPPER_SNAKE>} authorities.
+   */
+  private Collection<GrantedAuthority> roleAuthorities(Map<String, Object> claims) {
     Set<GrantedAuthority> authorities = new HashSet<>();
-    if (claims.get("realm_access") instanceof Map<?, ?> realmAccess
-        && realmAccess.get("roles") instanceof Collection<?> roles) {
-      roles.forEach(role ->
-          authorities.add(new SimpleGrantedAuthority(
-              "ROLE_" + role.toString().toUpperCase(Locale.ROOT).replace('-', '_'))));
-    }
+    roleExtractor.extractRoles(claims).forEach(role ->
+        authorities.add(new SimpleGrantedAuthority(
+            "ROLE_" + role.toUpperCase(Locale.ROOT).replace('-', '_'))));
     return authorities;
   }
 
