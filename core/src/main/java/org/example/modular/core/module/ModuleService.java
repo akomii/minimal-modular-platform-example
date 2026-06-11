@@ -58,10 +58,6 @@ public class ModuleService {
     return state(module);
   }
 
-  public String logs(String id) {
-    return runtime.getLogs(catalog.byId(id));
-  }
-
   public Closeable streamLogs(String id, LogSink sink) {
     return runtime.streamLogs(catalog.byId(id), sink);
   }

@@ -12,7 +12,6 @@ import com.github.dockerjava.api.model.Ports;
 import com.github.dockerjava.api.model.Ports.Binding;
 import java.io.Closeable;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.example.modular.core.module.ModuleDefinition;
@@ -105,28 +104,11 @@ public class DockerJavaRuntime implements ModuleRuntime {
 
   private void createContainer(ModuleDefinition module) {
     log.debug("Creating container for module {}", module.getId());
-    HostConfig hostConfig = HostConfig.newHostConfig();
-    List<ExposedPort> exposedPorts = new ArrayList<>();
-    Ports portBindings = new Ports();
-    if (module.getPorts() != null) {
-      for (String mapping : module.getPorts()) {
-        String[] parts = mapping.split(":");
-        if (parts.length != 2) {
-          log.error("Invalid port mapping {} for module {}", mapping, module.getId());
-          throw new IllegalArgumentException("Invalid port mapping: " + mapping);
-        }
-
-        int hostPort = Integer.parseInt(parts[0]);
-        int containerPort = Integer.parseInt(parts[1]);
-        ExposedPort exposedPort = ExposedPort.tcp(containerPort);
-        exposedPorts.add(exposedPort);
-        portBindings.bind(exposedPort, Binding.bindPort(hostPort));
-      }
-    }
-    hostConfig.withPortBindings(portBindings);
+    Ports portBindings = portBindings(module);
+    HostConfig hostConfig = HostConfig.newHostConfig().withPortBindings(portBindings);
     CreateContainerResponse response = dockerClient.createContainerCmd(module.getImage())
         .withName(module.getId())
-        .withExposedPorts(exposedPorts)
+        .withExposedPorts(List.copyOf(portBindings.getBindings().keySet()))
         .withHostConfig(hostConfig)
         .exec();
     if (response.getId() == null || response.getId().isBlank()) {
@@ -134,6 +116,23 @@ public class DockerJavaRuntime implements ModuleRuntime {
       throw new IllegalStateException("Container creation failed for module: " + module.getId());
     }
     log.debug("Container created with ID {}", response.getId());
+  }
+
+  private static Ports portBindings(ModuleDefinition module) {
+    Ports bindings = new Ports();
+    if (module.getPorts() == null) {
+      return bindings;
+    }
+    for (String mapping : module.getPorts()) {
+      String[] parts = mapping.split(":");
+      if (parts.length != 2) {
+        log.error("Invalid port mapping {} for module {}", mapping, module.getId());
+        throw new IllegalArgumentException("Invalid port mapping: " + mapping);
+      }
+      ExposedPort containerPort = ExposedPort.tcp(Integer.parseInt(parts[1]));
+      bindings.bind(containerPort, Binding.bindPort(Integer.parseInt(parts[0])));
+    }
+    return bindings;
   }
 
   @Override
@@ -214,27 +213,4 @@ public class DockerJavaRuntime implements ModuleRuntime {
         .exec(callback);
   }
 
-  @Override
-  public String getLogs(ModuleDefinition module) {
-    if (status(module) == ModuleStatus.NOT_CREATED) {
-      return "Module not installed";
-    }
-    StringBuilder logBuilder = new StringBuilder();
-    try {
-      dockerClient.logContainerCmd(module.getId())
-          .withStdOut(true)
-          .withStdErr(true)
-          .withTail(100)
-          .exec(new ResultCallback.Adapter<Frame>() {
-            @Override
-            public void onNext(Frame item) {
-              logBuilder.append(new String(item.getPayload(), StandardCharsets.UTF_8));
-            }
-          }).awaitCompletion();
-      return logBuilder.toString();
-    } catch (Exception e) {
-      log.error("Failed to fetch logs for {}", module.getId(), e);
-      return "Error fetching logs: " + e.getMessage();
-    }
-  }
 }

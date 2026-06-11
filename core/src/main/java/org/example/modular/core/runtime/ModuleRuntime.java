@@ -15,7 +15,5 @@ public interface ModuleRuntime {
 
   void remove(ModuleDefinition module);
 
-  String getLogs(ModuleDefinition module);
-
   Closeable streamLogs(ModuleDefinition module, LogSink sink);
 }

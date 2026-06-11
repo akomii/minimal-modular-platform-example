@@ -52,11 +52,6 @@ public class ModuleController {
     return service.remove(id, purge);
   }
 
-  @GetMapping(value = "/{id}/logs", produces = "text/plain")
-  public String getLogs(@PathVariable String id) {
-    return service.logs(id);
-  }
-
   @GetMapping(value = "/{id}/logs/stream", produces = "text/event-stream")
   public SseEmitter streamLogs(@PathVariable String id) {
     SseEmitter emitter = new SseEmitter(0L);
