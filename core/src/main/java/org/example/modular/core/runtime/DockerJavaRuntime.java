@@ -5,11 +5,14 @@ import com.github.dockerjava.api.async.ResultCallback;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.PullImageResultCallback;
 import com.github.dockerjava.api.exception.NotFoundException;
+import com.github.dockerjava.api.model.AccessMode;
+import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.Frame;
 import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.api.model.Ports;
 import com.github.dockerjava.api.model.Ports.Binding;
+import com.github.dockerjava.api.model.Volume;
 import java.io.Closeable;
 import java.net.ConnectException;
 import java.nio.charset.StandardCharsets;
@@ -124,13 +127,14 @@ public class DockerJavaRuntime implements ModuleRuntime {
   }
 
   /**
-   * Creates the container with its port bindings and merged env, verifies Docker returned a container id, then copies the module's mount files into it.
+   * Creates the container with its port bindings, read-only mounts and merged env, and verifies Docker returned a container id.
    */
   private void createContainer(ModuleDefinition module, Map<String, String> extraEnv) {
     log.debug("Creating container for module {}", module.getId());
     Ports portBindings = portBindings(module);
     HostConfig hostConfig = HostConfig.newHostConfig()
         .withPortBindings(portBindings)
+        .withBinds(binds(module))
         // lets containers reach services on the docker host (postgres, keycloak)
         .withExtraHosts("host.docker.internal:host-gateway");
     CreateContainerResponse response = dockerClient.createContainerCmd(module.getImage())
@@ -143,7 +147,6 @@ public class DockerJavaRuntime implements ModuleRuntime {
       log.error("Container creation returned empty ID for module {}", module.getId());
       throw new IllegalStateException("Container creation failed for module: " + module.getId());
     }
-    copyMounts(response.getId(), module);
     log.debug("Container created with ID {}", response.getId());
   }
 
@@ -170,18 +173,15 @@ public class DockerJavaRuntime implements ModuleRuntime {
   }
 
   /**
-   * Copies each manifest mount's contents into the created container over the Docker API instead of bind-mounting a host path, so it works even when the daemon does not share core's filesystem (e.g. a
-   * remote daemon). Source paths are resolved under the configured modules directory.
+   * Resolves each manifest mount to a read-only bind under the configured modules directory.
    */
-  private void copyMounts(String containerId, ModuleDefinition module) {
-    for (ModuleDefinition.Mount mount : module.getMounts()) {
-      String source = Paths.get(modulesDir).toAbsolutePath().resolve(mount.getSource()).toString();
-      dockerClient.copyArchiveToContainerCmd(containerId)
-          .withHostResource(source)
-          .withRemotePath(mount.getTarget())
-          .withDirChildrenOnly(true)
-          .exec();
-    }
+  private List<Bind> binds(ModuleDefinition module) {
+    return module.getMounts().stream()
+        .map(mount -> new Bind(
+            Paths.get(modulesDir).toAbsolutePath().resolve(mount.getSource()).toString(),
+            new Volume(mount.getTarget()),
+            AccessMode.ro))
+        .toList();
   }
 
   /**
