@@ -23,6 +23,7 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.example.modular.core.module.ModuleDefinition;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 /**
@@ -30,6 +31,7 @@ import org.springframework.stereotype.Service;
  */
 @Slf4j
 @Service
+@ConditionalOnProperty(name = "modules.runtime", havingValue = "docker", matchIfMissing = true)
 public class DockerJavaRuntime implements ModuleRuntime {
 
   private final DockerClient dockerClient;

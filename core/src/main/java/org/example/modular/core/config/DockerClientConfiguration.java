@@ -5,6 +5,7 @@ import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.github.dockerjava.transport.DockerHttpClient;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,6 +13,7 @@ import org.springframework.context.annotation.Configuration;
  * Builds the single {@link DockerClient} the platform uses to run, inspect, and tear down module containers.
  */
 @Configuration
+@ConditionalOnProperty(name = "modules.runtime", havingValue = "docker", matchIfMissing = true)
 public class DockerClientConfiguration {
 
   /**
