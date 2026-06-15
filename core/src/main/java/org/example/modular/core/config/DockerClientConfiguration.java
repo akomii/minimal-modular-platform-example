@@ -8,9 +8,15 @@ import com.github.dockerjava.transport.DockerHttpClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Builds the single {@link DockerClient} the platform uses to run, inspect, and tear down module containers.
+ */
 @Configuration
 public class DockerClientConfiguration {
 
+  /**
+   * Creates the Docker API client from the configured daemon host and TLS settings, failing fast if no host is set.
+   */
   @Bean
   public DockerClient dockerClient(DockerProperties properties) {
     if (properties.getHost() == null || properties.getHost().isBlank()) {

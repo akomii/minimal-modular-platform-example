@@ -5,12 +5,10 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.HashSet;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -22,7 +20,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
 import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -40,24 +37,28 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+/**
+ * Defines the platform's HTTP security: a browser/SPA login chain (BFF session + CSRF) for the management UI, plus an optional stateless Bearer-token chain for API clients.
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
   private static final String PLATFORM_ADMIN = "PLATFORM_ADMIN";
 
-  private final IdpRoleExtractor roleExtractor;
+  private final IdpAuthoritiesMapper authoritiesMapper;
 
-  public SecurityConfig(IdpRoleExtractor roleExtractor) {
-    this.roleExtractor = roleExtractor;
+  public SecurityConfig(IdpAuthoritiesMapper authoritiesMapper) {
+    this.authoritiesMapper = authoritiesMapper;
   }
 
   /**
-   * API clients (e.g. Postman) that send a {@code Authorization: Bearer <jwt>} header are authenticated statelessly as an OAuth2 resource server. This chain only matches such requests; everything
-   * else falls through to the BFF chain below.
+   * Optional stateless chain that authenticates API clients sending an {@code Authorization: Bearer <jwt>} header as an OAuth2 resource server; enabled only when
+   * {@code security.api-token.enabled=true}.
    */
   @Bean
   @Order(1)
+  @ConditionalOnProperty(name = "security.api-token.enabled", havingValue = "true")
   SecurityFilterChain apiTokenFilterChain(HttpSecurity http) throws Exception {
     http
         .securityMatcher(bearerTokenRequests())
@@ -65,14 +66,16 @@ public class SecurityConfig {
           apiAuthorizationRules(auth);
           auth.anyRequest().authenticated();
         })
-        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .sessionManagement(session ->
+            session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .csrf(csrf -> csrf.disable())
-        .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
+        .oauth2ResourceServer(oauth2 ->
+            oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
     return http.build();
   }
 
   /**
-   * Browser/SPA chain: confidential OAuth2 login (BFF), server-side session, CSRF.
+   * Default chain for the management UI: confidential OAuth2 login (backend-for-frontend), server-side session, and cookie-based CSRF.
    */
   @Bean
   @Order(2)
@@ -99,6 +102,9 @@ public class SecurityConfig {
     return http.build();
   }
 
+  /**
+   * Shared authorization rules: any authenticated user may read {@code /api/user}; all module and observability endpoints additionally require the platform-admin role.
+   */
   private static void apiAuthorizationRules(AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth) {
     auth
         // any authenticated user may read who they are (drives the SPA's login-vs-no-access UX)
@@ -120,17 +126,16 @@ public class SecurityConfig {
   }
 
   /**
-   * Maps identity-provider roles from a validated Bearer JWT into Spring authorities.
+   * Converts the IdP roles in a validated Bearer JWT into Spring authorities for the API token chain.
    */
   private JwtAuthenticationConverter jwtAuthenticationConverter() {
     JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-    converter.setJwtGrantedAuthoritiesConverter(jwt -> roleAuthorities(jwt.getClaims()));
+    converter.setJwtGrantedAuthoritiesConverter(jwt -> authoritiesMapper.fromClaims(jwt.getClaims()));
     return converter;
   }
 
   /**
-   * The default OIDC login does not turn identity-provider roles into Spring authorities. Extract them via {@link IdpRoleExtractor} and map each role to {@code ROLE_<UPPER_SNAKE>} so
-   * {@code hasRole("PLATFORM_ADMIN")} matches an IdP role named {@code platform-admin}.
+   * Adds IdP roles as authorities after browser OIDC login, which Spring's default login does not map on its own.
    */
   @Bean
   GrantedAuthoritiesMapper userAuthoritiesMapper() {
@@ -138,25 +143,14 @@ public class SecurityConfig {
       Set<GrantedAuthority> mapped = new HashSet<>(authorities);
       authorities.forEach(authority -> {
         if (authority instanceof OidcUserAuthority oidc) {
-          mapped.addAll(roleAuthorities(oidc.getIdToken().getClaims()));
+          mapped.addAll(authoritiesMapper.fromClaims(oidc.getIdToken().getClaims()));
           if (oidc.getUserInfo() != null) {
-            mapped.addAll(roleAuthorities(oidc.getUserInfo().getClaims()));
+            mapped.addAll(authoritiesMapper.fromClaims(oidc.getUserInfo().getClaims()));
           }
         }
       });
       return mapped;
     };
-  }
-
-  /**
-   * Normalizes the extracted role names to {@code ROLE_<UPPER_SNAKE>} authorities.
-   */
-  private Collection<GrantedAuthority> roleAuthorities(Map<String, Object> claims) {
-    Set<GrantedAuthority> authorities = new HashSet<>();
-    roleExtractor.extractRoles(claims).forEach(role ->
-        authorities.add(new SimpleGrantedAuthority(
-            "ROLE_" + role.toUpperCase(Locale.ROOT).replace('-', '_'))));
-    return authorities;
   }
 
   /**
@@ -186,8 +180,7 @@ public class SecurityConfig {
   static final class CsrfCookieFilter extends OncePerRequestFilter {
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-        throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
       CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
       csrfToken.getToken();
       filterChain.doFilter(request, response);

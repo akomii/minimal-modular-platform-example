@@ -9,5 +9,8 @@ import java.util.Map;
  */
 public interface IdpRoleExtractor {
 
+  /**
+   * Returns the role names present in the given token claims, or empty if none are found.
+   */
   Collection<String> extractRoles(Map<String, Object> claims);
 }
