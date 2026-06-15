@@ -1,0 +1,41 @@
+{
+  "id": "dashboard",
+  "version": "1.0.0",
+  "image": "grafana/grafana:11.5.1",
+  "ports": [
+    "8084:3000"
+  ],
+  "env": {
+    "GF_SERVER_ROOT_URL": "http://localhost:8084",
+    "GF_AUTH_DISABLE_LOGIN_FORM": "true",
+    "GF_AUTH_GENERIC_OAUTH_ENABLED": "true",
+    "GF_AUTH_GENERIC_OAUTH_NAME": "Platform Login",
+    "GF_AUTH_GENERIC_OAUTH_CLIENT_ID": "${MODULE_OIDC_CLIENT_ID}",
+    "GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET": "${MODULE_OIDC_CLIENT_SECRET}",
+    "GF_AUTH_GENERIC_OAUTH_SCOPES": "openid profile email",
+    "GF_AUTH_GENERIC_OAUTH_AUTH_URL": "http://localhost:8081/realms/modular/protocol/openid-connect/auth",
+    "GF_AUTH_GENERIC_OAUTH_TOKEN_URL": "http://host.docker.internal:8081/realms/modular/protocol/openid-connect/token",
+    "GF_AUTH_GENERIC_OAUTH_API_URL": "http://host.docker.internal:8081/realms/modular/protocol/openid-connect/userinfo",
+    "GF_AUTH_GENERIC_OAUTH_LOGIN_ATTRIBUTE_PATH": "preferred_username",
+    "GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH": "contains(resource_access.dashboard.roles[*], 'dashboard-admin') && 'Admin' || contains(resource_access.dashboard.roles[*], 'dashboard-user') && 'Viewer'",
+    "GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_STRICT": "true"
+  },
+  "mounts": [
+    {
+      "source": "dashboard/provisioning",
+      "target": "/etc/grafana/provisioning"
+    }
+  ],
+  "db": {
+    "coreAccess": "read"
+  },
+  "idp": {
+    "redirectUris": [
+      "http://localhost:8084/login/generic_oauth"
+    ],
+    "roles": [
+      "dashboard-admin",
+      "dashboard-user"
+    ]
+  }
+}

@@ -1,16 +1,13 @@
 {
   "id": "weather",
   "version": "1.0.0",
-  "type": "container",
-  "deployment": "registry.hub.docker.com/library/nginx:alpine",
   "image": "nginx:alpine",
   "ports": [
-    "8082:8080"
+    "8082:80"
   ],
   "db": {
-    "schema": "mod_weather",
+    "ownSchema": true,
     "coreAccess": "write",
-    "up": "weather/up.sql",
-    "down": "weather/down.sql"
+    "migrations": ["weather/up.sql"]
   }
 }
