@@ -14,5 +14,8 @@ public interface IdpProvisioner {
    */
   Map<String, String> provision(ModuleDefinition module);
 
+  /**
+   * Removes all identity resources the module provisioned; a no-op for modules without an idp block.
+   */
   void purge(ModuleDefinition module);
 }
