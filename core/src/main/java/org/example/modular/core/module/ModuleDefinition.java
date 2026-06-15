@@ -55,14 +55,14 @@ public class ModuleDefinition {
   }
 
   /**
-   * Database provisioning the module requests: its own schema, the access level it needs on the core schema, and the SQL to set up ({@code up}) and tear down ({@code down}) that schema.
+   * Database provisioning the module requests: whether it gets its own schema (named {@code mod_<id>}, like its role), the access level it needs on the core schema, and the ordered migrations to
+   * apply (first entry installs, later entries are version deltas).
    */
   @Data
   public static class Db {
 
-    private String schema;
+    private boolean ownSchema;
     private CoreAccess coreAccess = CoreAccess.NONE;
-    private String up;
-    private String down;
+    private List<String> migrations = new ArrayList<>();
   }
 }

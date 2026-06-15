@@ -50,6 +50,19 @@ public class ModuleService {
     return state(module);
   }
 
+  /**
+   * Brings the module to its catalog version: runs pending DB migrations, additively reconciles its identity resources, and redeploys the container on the new image with refreshed env.
+   */
+  public ModuleDTO upgrade(String id) {
+    ModuleDefinition module = catalog.byId(id);
+    provisioner.upgrade(module);
+    Map<String, String> env = new LinkedHashMap<>(provisioner.dbEnv(module));
+    env.putAll(idpProvisioner.provision(module));
+    runtime.remove(module);
+    runtime.install(module, env);
+    return state(module);
+  }
+
   public ModuleDTO start(String id) {
     ModuleDefinition module = catalog.byId(id);
     runtime.start(module);

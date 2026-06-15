@@ -40,6 +40,11 @@ public class ModuleController {
     return service.authorize(id);
   }
 
+  @PostMapping("/{id}/upgrade")
+  public ModuleDTO upgrade(@PathVariable String id) {
+    return service.upgrade(id);
+  }
+
   @PostMapping("/{id}/start")
   public ModuleDTO start(@PathVariable String id) {
     return service.start(id);

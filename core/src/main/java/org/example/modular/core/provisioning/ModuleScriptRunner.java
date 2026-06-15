@@ -47,6 +47,15 @@ public class ModuleScriptRunner {
     jdbc.execute("RESET ROLE");
   }
 
+  /**
+   * Replays the module's audit log to undo its core writes, running as the module role (still a core_owner member) so it owns the changes it reverts.
+   */
+  public void undoCoreWritesAs(String role, String moduleId) {
+    jdbc.execute("SET LOCAL ROLE " + quoteIdent(role));
+    jdbc.queryForObject("SELECT core.undo_module_writes(?)", (rs, n) -> null, moduleId);
+    jdbc.execute("RESET ROLE");
+  }
+
   public void dropModule(String role) {
     jdbc.execute("RESET ROLE");
     jdbc.execute("DROP OWNED BY " + quoteIdent(role) + " CASCADE");
