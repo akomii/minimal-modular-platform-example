@@ -12,11 +12,13 @@ import java.time.format.DateTimeFormatter;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+/**
+ * Attaches a Logback appender to the root logger at startup so the core app's own log events are formatted and forwarded into the {@link ServerLogStore} for live streaming.
+ */
 @Component
 public class ServerLogAppenderInstaller {
 
-  private static final DateTimeFormatter TIME =
-      DateTimeFormatter.ofPattern("HH:mm:ss.SSS").withZone(ZoneId.systemDefault());
+  private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm:ss.SSS").withZone(ZoneId.systemDefault());
 
   private final ServerLogStore store;
 
@@ -24,6 +26,9 @@ public class ServerLogAppenderInstaller {
     this.store = store;
   }
 
+  /**
+   * Builds and registers the SSE-feeding appender on the Logback root logger once the bean is initialized.
+   */
   @PostConstruct
   void install() {
     LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -39,6 +44,9 @@ public class ServerLogAppenderInstaller {
     context.getLogger(Logger.ROOT_LOGGER_NAME).addAppender(appender);
   }
 
+  /**
+   * Renders a log event into the single-line {@code time level logger - message} form (appending the throwable summary, if any) used by the UI's server-log view.
+   */
   private static String format(ILoggingEvent event) {
     StringBuilder line = new StringBuilder()
         .append(TIME.format(Instant.ofEpochMilli(event.getTimeStamp())))
@@ -52,6 +60,9 @@ public class ServerLogAppenderInstaller {
     return line.toString();
   }
 
+  /**
+   * Shortens a fully qualified logger name to its simple class name to keep the UI's log lines compact.
+   */
   private static String shortLogger(String name) {
     int lastDot = name.lastIndexOf('.');
     return lastDot >= 0 ? name.substring(lastDot + 1) : name;

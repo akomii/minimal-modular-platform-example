@@ -6,6 +6,9 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+/**
+ * Reusable building block behind each observability stream: keeps a bounded backlog of recent items and fans new items out to all connected SSE subscribers.
+ */
 public class SseBroadcaster {
 
   private final int capacity;
@@ -16,6 +19,9 @@ public class SseBroadcaster {
     this.capacity = capacity;
   }
 
+  /**
+   * Appends an item to the bounded backlog (evicting the oldest past capacity) and sends it to every subscriber, dropping any whose send fails.
+   */
   public void publish(Object item) {
     synchronized (buffer) {
       buffer.addLast(item);
@@ -32,6 +38,9 @@ public class SseBroadcaster {
     }
   }
 
+  /**
+   * Creates a non-expiring SSE emitter, replays the current backlog to it, and registers it for future items (self-unregistering on completion, timeout or error).
+   */
   public SseEmitter subscribe() {
     SseEmitter emitter = new SseEmitter(0L);
     emitter.onCompletion(() -> emitters.remove(emitter));

@@ -10,6 +10,9 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+/**
+ * Servlet filter that captures each handled {@code /api/**} request (excluding the SSE streams) into the request-log store for the management UI's live stream.
+ */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class RequestLogFilter extends OncePerRequestFilter {
@@ -20,9 +23,11 @@ public class RequestLogFilter extends OncePerRequestFilter {
     this.store = store;
   }
 
+  /**
+   * Lets the request proceed, then records its method, path (with query) and response status, skipping the SSE stream endpoints.
+   */
   @Override
-  protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
-      throws ServletException, IOException {
+  protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
     try {
       chain.doFilter(request, response);
     } finally {
