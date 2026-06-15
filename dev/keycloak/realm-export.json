@@ -18,6 +18,7 @@
       "clientAuthenticatorType": "client-secret",
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
       "redirectUris": [
         "http://localhost:8080/login/oauth2/code/idp",
         "http://localhost:5173/login/oauth2/code/idp"
@@ -64,6 +65,21 @@
         "default-roles-modular",
         "platform-admin"
       ]
+    },
+    {
+      "username": "service-account-core",
+      "enabled": true,
+      "serviceAccountClientId": "core",
+      "clientRoles": {
+        "realm-management": [
+          "manage-clients",
+          "manage-realm",
+          "manage-users",
+          "view-realm",
+          "view-users",
+          "view-clients"
+        ]
+      }
     },
     {
       "username": "guest",
