@@ -1,7 +1,10 @@
 package org.example.modular.core.module;
 
 import java.io.Closeable;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import org.example.modular.core.idp.IdpProvisioner;
 import org.example.modular.core.provisioning.ModuleProvisioner;
 import org.example.modular.core.runtime.LogSink;
 import org.example.modular.core.runtime.ModuleRuntime;
@@ -13,11 +16,13 @@ public class ModuleService {
   private final ModuleCatalog catalog;
   private final ModuleRuntime runtime;
   private final ModuleProvisioner provisioner;
+  private final IdpProvisioner idpProvisioner;
 
-  public ModuleService(ModuleCatalog catalog, ModuleRuntime runtime, ModuleProvisioner provisioner) {
+  public ModuleService(ModuleCatalog catalog, ModuleRuntime runtime, ModuleProvisioner provisioner, IdpProvisioner idpProvisioner) {
     this.catalog = catalog;
     this.runtime = runtime;
     this.provisioner = provisioner;
+    this.idpProvisioner = idpProvisioner;
   }
 
   public List<ModuleDTO> list() {
@@ -27,7 +32,9 @@ public class ModuleService {
   public ModuleDTO install(String id) {
     ModuleDefinition module = catalog.byId(id);
     provisioner.provision(module);
-    runtime.install(module);
+    Map<String, String> env = new LinkedHashMap<>(provisioner.dbEnv(module));
+    env.putAll(idpProvisioner.provision(module));
+    runtime.install(module, env);
     return state(module);
   }
 
@@ -53,6 +60,7 @@ public class ModuleService {
     ModuleDefinition module = catalog.byId(id);
     if (purge) {
       provisioner.purge(module);
+      idpProvisioner.purge(module);
     }
     runtime.remove(module);
     return state(module);
