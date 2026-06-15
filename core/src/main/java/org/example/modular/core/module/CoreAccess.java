@@ -12,7 +12,9 @@ public enum CoreAccess {
   READ,
   WRITE;
 
-  // fail fast at catalog load instead of silently treating manifest typos as "no access"
+  /**
+   * Parses the manifest's access value into the enum, failing fast on an unknown value so a manifest typo can't silently become "no access".
+   */
   @JsonCreator
   public static CoreAccess parse(String value) {
     for (CoreAccess access : values()) {
@@ -23,7 +25,9 @@ public enum CoreAccess {
     throw new IllegalArgumentException("Unknown coreAccess value: " + value);
   }
 
-  /** Lowercase form used in manifests, the API and the provisioning table. */
+  /**
+   * Lowercase form used in manifests, the API and the provisioning table.
+   */
   @JsonValue
   @Override
   public String toString() {

@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 import lombok.Data;
 
+/**
+ * Parsed module manifest: container image, ports, env and mounts plus optional database and identity (idp) provisioning sections.
+ */
 @Data
 public class ModuleDefinition {
 
@@ -20,6 +23,9 @@ public class ModuleDefinition {
   private Db db;
   private Idp idp;
 
+  /**
+   * A read-only host-to-container file mount (manifest {@code source} path resolved against the modules directory, container {@code target} path).
+   */
   @Data
   public static class Mount {
 
@@ -28,7 +34,7 @@ public class ModuleDefinition {
   }
 
   /**
-   * Identity resources the module needs: an OAuth client (named after the module), realm roles and optionally users.
+   * Identity resources the module needs: an OAuth client (named after the module), client roles and optionally service accounts.
    */
   @Data
   public static class Idp {
@@ -39,16 +45,18 @@ public class ModuleDefinition {
   }
 
   /**
-   * A user the module ships (with password) or an existing user it grants roles to (without password).
+   * A service account the module ships: created on demand with a generated password and granted the listed roles.
    */
   @Data
   public static class IdpUser {
 
     private String username;
-    private String password;
     private List<String> roles = new ArrayList<>();
   }
 
+  /**
+   * Database provisioning the module requests: its own schema, the access level it needs on the core schema, and the SQL to set up ({@code up}) and tear down ({@code down}) that schema.
+   */
   @Data
   public static class Db {
 

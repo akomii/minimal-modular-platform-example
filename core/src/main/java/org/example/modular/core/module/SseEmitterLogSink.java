@@ -15,6 +15,9 @@ final class SseEmitterLogSink implements LogSink {
     this.emitter = emitter;
   }
 
+  /**
+   * Sends one log line as an SSE event, completing the emitter with an error if the connection is broken.
+   */
   @Override
   public void line(String text) {
     try {

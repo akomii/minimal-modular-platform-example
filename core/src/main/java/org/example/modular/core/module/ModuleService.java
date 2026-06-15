@@ -10,6 +10,9 @@ import org.example.modular.core.runtime.LogSink;
 import org.example.modular.core.runtime.ModuleRuntime;
 import org.springframework.stereotype.Service;
 
+/**
+ * Orchestrates the module lifecycle for the API, tying together the catalog, container runtime, and the database and identity provisioners.
+ */
 @Service
 public class ModuleService {
 
@@ -29,6 +32,9 @@ public class ModuleService {
     return catalog.getModules().stream().map(this::state).toList();
   }
 
+  /**
+   * Provisions the module's database and identity resources, then creates its container with the resulting connection/credential env vars.
+   */
   public ModuleDTO install(String id) {
     ModuleDefinition module = catalog.byId(id);
     provisioner.provision(module);

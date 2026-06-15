@@ -12,6 +12,9 @@ import java.util.stream.Stream;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+/**
+ * {@link ModuleCatalog} backed by the filesystem: at startup it loads every manifest under the configured modules directory and afterwards serves their definitions and referenced scripts.
+ */
 @Service
 public class FilesystemModuleCatalog implements ModuleCatalog {
 
@@ -24,6 +27,9 @@ public class FilesystemModuleCatalog implements ModuleCatalog {
     this.objectMapper = objectMapper;
   }
 
+  /**
+   * Walks the modules directory at startup and parses every {@code .json} manifest into a {@link ModuleDefinition}.
+   */
   @PostConstruct
   public void loadModules() {
     Path path = Paths.get(modulesDir);

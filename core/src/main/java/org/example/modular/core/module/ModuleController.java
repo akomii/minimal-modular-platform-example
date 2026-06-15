@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+/**
+ * REST API for the management UI to list modules, drive their lifecycle (install, authorize, start, stop, remove) and stream their logs.
+ */
 @RestController
 @RequestMapping("/api/modules")
 public class ModuleController {
@@ -52,6 +55,9 @@ public class ModuleController {
     return service.remove(id, purge);
   }
 
+  /**
+   * Opens an SSE stream of the module's container logs, closing the underlying follow when the client disconnects.
+   */
   @GetMapping(value = "/{id}/logs/stream", produces = "text/event-stream")
   public SseEmitter streamLogs(@PathVariable String id) {
     SseEmitter emitter = new SseEmitter(0L);
