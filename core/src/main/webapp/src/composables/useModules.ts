@@ -13,7 +13,6 @@ export type CoreAccessValue = "none" | "read" | "write"
 export interface ModuleInfo {
   id: string
   version: string
-  type: string
   status: ModuleStatusValue
   coreAccess: CoreAccessValue
   authorized: boolean

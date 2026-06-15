@@ -8,7 +8,6 @@ import org.example.modular.core.runtime.ModuleStatus;
 public record ModuleDTO(
     String id,
     String version,
-    String type,
     ModuleStatus status,
     CoreAccess coreAccess,
     boolean authorized
@@ -22,7 +21,6 @@ public record ModuleDTO(
     return new ModuleDTO(
         module.getId(),
         module.getVersion(),
-        module.getType(),
         status,
         coreAccess,
         authorized

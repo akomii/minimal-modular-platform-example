@@ -14,8 +14,6 @@ public class ModuleDefinition {
 
   private String id;
   private String version;
-  private String type;
-  private String deployment;
   private String image;
   private List<String> ports = new ArrayList<>();
   private Map<String, String> env = new LinkedHashMap<>();

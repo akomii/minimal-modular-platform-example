@@ -68,7 +68,6 @@ function confirmRemove(module: ModuleInfo, purge: boolean): void {
     <DataTable :value="modules" dataKey="id">
       <Column field="id" header="ID" />
       <Column field="version" header="Version" />
-      <Column field="type" header="Type" />
       <Column header="Status">
         <template #body="{ data }">
           <Tag :value="data.status" :severity="statusSeverity(data.status)" />
