@@ -4,8 +4,8 @@ import java.util.Map;
 import org.example.modular.core.module.ModuleDefinition;
 
 /**
- * Provisions the identity resources a module declares in its manifest (OAuth client, roles, users). Implementations are IdP-specific — swapping the identity provider means swapping the
- * implementation.
+ * Provisions the identity resources a module declares in its manifest (OAuth client, client roles, service accounts). Implementations are IdP-specific — swapping the identity provider means swapping
+ * the implementation.
  */
 public interface IdpProvisioner {
 

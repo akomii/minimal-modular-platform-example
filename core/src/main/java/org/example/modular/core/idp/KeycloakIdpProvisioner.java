@@ -45,7 +45,7 @@ public class KeycloakIdpProvisioner implements IdpProvisioner {
   }
 
   /**
-   * Reconciles the module's identity resources (OAuth client with a fresh secret, its client roles, default users) and returns the client id/secret env vars for the container.
+   * Reconciles the module's identity resources (OAuth client with a fresh secret, its client roles, service accounts) and returns the client id/secret env vars for the container.
    */
   @Override
   public Map<String, String> provision(ModuleDefinition module) {
@@ -78,10 +78,9 @@ public class KeycloakIdpProvisioner implements IdpProvisioner {
     String token = adminToken();
     // deleting the client also removes its client roles and any user assignments of them
     findClient(token, module.getId()).ifPresent(internalId -> deleteQuietly(token, adminBase + "/clients/" + internalId));
-    // users are realm-level, so the module's own accounts (the ones it ships credentials for) must be removed explicitly
-    idp.getUsers().stream()
-        .filter(user -> user.getPassword() != null && !user.getPassword().isBlank())
-        .forEach(user -> findUser(token, user.getUsername()).ifPresent(id -> deleteQuietly(token, adminBase + "/users/" + id)));
+    // users are realm-level, so the module's own service accounts must be removed explicitly
+    idp.getUsers().forEach(user ->
+        findUser(token, user.getUsername()).ifPresent(id -> deleteQuietly(token, adminBase + "/users/" + id)));
   }
 
   /**
@@ -172,15 +171,12 @@ public class KeycloakIdpProvisioner implements IdpProvisioner {
   }
 
   /**
-   * Ensures the manifest user exists (creating it from the shipped password when missing) and assigns it the requested client roles.
+   * Ensures the module's service account exists (creating it with a generated password when missing) and assigns it the requested client roles.
    */
   private void ensureUser(String token, String clientUuid, ModuleDefinition.IdpUser user) {
     Optional<String> userId = findUser(token, user.getUsername());
     if (userId.isEmpty()) {
-      if (user.getPassword() == null || user.getPassword().isBlank()) {
-        log.warn("User {} does not exist and the manifest ships no password; skipping", user.getUsername());
-        return;
-      }
+      String password = UUID.randomUUID().toString().replace("-", "").substring(0, 12);
       rest.post()
           .uri(adminBase + "/users")
           .headers(headers -> headers.setBearerAuth(token))
@@ -189,7 +185,7 @@ public class KeycloakIdpProvisioner implements IdpProvisioner {
               "username", user.getUsername(),
               "enabled", true,
               "emailVerified", true,
-              "credentials", List.of(Map.of("type", "password", "value", user.getPassword(), "temporary", false))))
+              "credentials", List.of(Map.of("type", "password", "value", password, "temporary", false))))
           .retrieve()
           .toBodilessEntity();
       log.info("Created user {}", user.getUsername());
