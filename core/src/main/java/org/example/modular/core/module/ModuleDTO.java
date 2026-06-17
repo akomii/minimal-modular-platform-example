@@ -1,5 +1,6 @@
 package org.example.modular.core.module;
 
+import java.util.List;
 import org.example.modular.core.runtime.ModuleStatus;
 
 /**
@@ -8,9 +9,11 @@ import org.example.modular.core.runtime.ModuleStatus;
 public record ModuleDTO(
     String id,
     String version,
+    List<String> ports,
     ModuleStatus status,
     CoreAccess coreAccess,
-    boolean authorized
+    boolean authorized,
+    List<ModuleDefinition.Dependency> dependsOn
 ) {
 
   /**
@@ -21,9 +24,11 @@ public record ModuleDTO(
     return new ModuleDTO(
         module.getId(),
         module.getVersion(),
+        module.getPorts(),
         status,
         coreAccess,
-        authorized
+        authorized,
+        module.getDependsOn()
     );
   }
 }

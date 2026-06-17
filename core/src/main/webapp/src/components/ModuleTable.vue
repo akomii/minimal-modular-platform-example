@@ -6,6 +6,7 @@ import SplitButton from "primevue/splitbutton"
 import Tag from "primevue/tag"
 import { useConfirm } from "primevue/useconfirm"
 import {
+  type ModuleDependency,
   type ModuleInfo,
   type ModuleStatusValue,
   useModules
@@ -13,6 +14,15 @@ import {
 
 const { modules, list, install, authorize, start, stop, remove } = useModules()
 const confirm = useConfirm()
+
+function formatDependencies(deps: ModuleDependency[]): string {
+  return deps.map((d) => `${d.id} ${d.version}`).join(", ")
+}
+
+// Published host port(s) — the "host" side of each host:container mapping.
+function formatPorts(ports: string[]): string {
+  return ports.map((p) => p.split(":")[0]).join(", ")
+}
 
 function statusSeverity(
   status: ModuleStatusValue
@@ -68,6 +78,12 @@ function confirmRemove(module: ModuleInfo, purge: boolean): void {
     <DataTable :value="modules" dataKey="id">
       <Column field="id" header="ID" />
       <Column field="version" header="Version" />
+      <Column header="Port">
+        <template #body="{ data }">
+          <span v-if="data.ports?.length">{{ formatPorts(data.ports) }}</span>
+          <span v-else>–</span>
+        </template>
+      </Column>
       <Column header="Status">
         <template #body="{ data }">
           <Tag :value="data.status" :severity="statusSeverity(data.status)" />
@@ -81,6 +97,14 @@ function confirmRemove(module: ModuleInfo, purge: boolean): void {
             :value="data.authorized ? 'yes' : 'no'"
             :severity="data.authorized ? 'success' : 'warn'"
           />
+          <span v-else>–</span>
+        </template>
+      </Column>
+      <Column header="Depends on">
+        <template #body="{ data }">
+          <span v-if="data.dependsOn?.length">{{
+            formatDependencies(data.dependsOn)
+          }}</span>
           <span v-else>–</span>
         </template>
       </Column>

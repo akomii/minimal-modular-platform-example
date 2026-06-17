@@ -1,5 +1,6 @@
 import { ref } from "vue"
-import { apiCall } from "./useApi"
+import { useToast } from "primevue/usetoast"
+import { apiCall, type ApiResponse } from "./useApi"
 
 export type ModuleStatusValue =
   | "RUNNING"
@@ -10,17 +11,26 @@ export type ModuleStatusValue =
 // mirrors the backend CoreAccess enum (lowercase over JSON)
 export type CoreAccessValue = "none" | "read" | "write"
 
+export interface ModuleDependency {
+  id: string
+  version: string
+}
+
 export interface ModuleInfo {
   id: string
   version: string
+  ports: string[]
   status: ModuleStatusValue
   coreAccess: CoreAccessValue
   authorized: boolean
+  dependsOn: ModuleDependency[]
 }
 
 const modules = ref<ModuleInfo[]>([])
 
 export function useModules() {
+  const toast = useToast()
+
   async function list(): Promise<void> {
     const res = await apiCall("GET", "/api/modules")
     if (res.ok && Array.isArray(res.body)) {
@@ -28,30 +38,47 @@ export function useModules() {
     }
   }
 
-  async function install(id: string): Promise<void> {
-    await apiCall("POST", `/api/modules/${id}/install`)
+  // Runs a mutating action, surfaces the server's message on failure, then refreshes the list.
+  async function run(method: string, url: string): Promise<void> {
+    const res = await apiCall(method, url)
+    if (!res.ok) {
+      toast.add({
+        severity: "error",
+        summary: "Action failed",
+        detail: errorDetail(res),
+        life: 6000
+      })
+    }
     await list()
   }
 
-  async function authorize(id: string): Promise<void> {
-    await apiCall("POST", `/api/modules/${id}/authorize`)
-    await list()
+  function install(id: string): Promise<void> {
+    return run("POST", `/api/modules/${id}/install`)
   }
 
-  async function start(id: string): Promise<void> {
-    await apiCall("POST", `/api/modules/${id}/start`)
-    await list()
+  function authorize(id: string): Promise<void> {
+    return run("POST", `/api/modules/${id}/authorize`)
   }
 
-  async function stop(id: string): Promise<void> {
-    await apiCall("POST", `/api/modules/${id}/stop`)
-    await list()
+  function start(id: string): Promise<void> {
+    return run("POST", `/api/modules/${id}/start`)
   }
 
-  async function remove(id: string, purge: boolean): Promise<void> {
-    await apiCall("DELETE", `/api/modules/${id}?purge=${purge}`)
-    await list()
+  function stop(id: string): Promise<void> {
+    return run("POST", `/api/modules/${id}/stop`)
+  }
+
+  function remove(id: string, purge: boolean): Promise<void> {
+    return run("DELETE", `/api/modules/${id}?purge=${purge}`)
   }
 
   return { modules, list, install, authorize, start, stop, remove }
+}
+
+// Pulls the RFC 7807 `detail` from a ProblemDetail body, falling back to the status code.
+function errorDetail(res: ApiResponse): string {
+  if (res.body && typeof res.body === "object" && "detail" in res.body) {
+    return String((res.body as Record<string, unknown>).detail)
+  }
+  return `Request failed (${res.status})`
 }

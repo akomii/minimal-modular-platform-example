@@ -28,7 +28,7 @@ public class FilesystemModuleCatalog implements ModuleCatalog {
   }
 
   /**
-   * Walks the modules directory at startup and parses every {@code .json} manifest into a {@link ModuleDefinition}.
+   * Walks the modules directory at startup and parses every {@code manifest.json} into a {@link ModuleDefinition}.
    */
   @PostConstruct
   public void loadModules() {
@@ -38,7 +38,8 @@ public class FilesystemModuleCatalog implements ModuleCatalog {
     }
     try (Stream<Path> paths = Files.walk(path)) {
       paths.filter(Files::isRegularFile)
-          .filter(p -> p.toString().endsWith(".json"))
+          // only module manifests — not other JSON a module ships (e.g. Grafana dashboards under provisioning/)
+          .filter(p -> p.getFileName().toString().equals("manifest.json"))
           .forEach(this::loadManifest);
     } catch (Exception e) {
       throw new RuntimeException("Failed to load modules from " + modulesDir, e);

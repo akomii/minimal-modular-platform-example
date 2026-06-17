@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from "vue"
 import ConfirmDialog from "primevue/confirmdialog"
+import Toast from "primevue/toast"
 import ModuleTable from "./ModuleTable.vue"
 import LogsPanel from "./LogsPanel.vue"
 import { useModules } from "../composables/useModules"
@@ -25,6 +26,7 @@ onMounted(() => {
       </section>
     </div>
     <ConfirmDialog />
+    <Toast />
   </div>
 </template>
 
