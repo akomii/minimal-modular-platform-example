@@ -1,5 +1,6 @@
 package org.example.modular.core.web;
 
+import org.example.modular.core.dependency.ModuleDependencyException;
 import org.example.modular.core.module.ModuleNotFoundException;
 import org.example.modular.core.provisioning.ModuleNotAuthorizedException;
 import org.example.modular.core.runtime.InvalidModuleStateException;
@@ -24,6 +25,11 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(InvalidModuleStateException.class)
   public ProblemDetail handleInvalidState(InvalidModuleStateException ex) {
+    return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+  }
+
+  @ExceptionHandler(ModuleDependencyException.class)
+  public ProblemDetail handleDependency(ModuleDependencyException ex) {
     return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
   }
 

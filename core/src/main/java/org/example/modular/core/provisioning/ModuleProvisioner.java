@@ -67,6 +67,27 @@ public class ModuleProvisioner {
   }
 
   /**
+   * Records (or refreshes) the module's installed version in the ledger, for any module regardless of its db needs.
+   */
+  public void recordInstalled(ModuleDefinition module) {
+    repository.recordInstalled(module.getId(), module.getVersion());
+  }
+
+  /**
+   * Removes the module's install record from the ledger.
+   */
+  public void removeInstalled(String moduleId) {
+    repository.delete(moduleId);
+  }
+
+  /**
+   * The module's installed version, or null if it is not installed.
+   */
+  public String installedVersion(String moduleId) {
+    return repository.installedVersion(moduleId);
+  }
+
+  /**
    * First install: creates the module's role and schema, grants the requested core access, runs all migrations, then records the installed version and any core changes the migrations made.
    */
   @Transactional

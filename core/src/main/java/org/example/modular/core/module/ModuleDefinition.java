@@ -7,7 +7,7 @@ import java.util.Map;
 import lombok.Data;
 
 /**
- * Parsed module manifest: container image, ports, env and mounts plus optional database and identity (idp) provisioning sections.
+ * Parsed module manifest: container image, ports, env and mounts plus optional database and identity (idp) provisioning sections, and prerequisite modules.
  */
 @Data
 public class ModuleDefinition {
@@ -20,6 +20,7 @@ public class ModuleDefinition {
   private List<Mount> mounts = new ArrayList<>();
   private Db db;
   private Idp idp;
+  private List<Dependency> dependsOn = new ArrayList<>();
 
   /**
    * A read-only host-to-container file mount (manifest {@code source} path resolved against the modules directory, container {@code target} path).
@@ -62,5 +63,15 @@ public class ModuleDefinition {
     private boolean ownSchema;
     private CoreAccess coreAccess = CoreAccess.NONE;
     private List<String> migrations = new ArrayList<>();
+  }
+
+  /**
+   * A prerequisite module: {@code id} must be installed at a version satisfying the {@code version} constraint (e.g. {@code >=1.0.0}) before this module can be installed.
+   */
+  @Data
+  public static class Dependency {
+
+    private String id;
+    private String version;
   }
 }

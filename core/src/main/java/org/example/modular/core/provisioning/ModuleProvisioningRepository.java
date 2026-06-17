@@ -46,6 +46,26 @@ public class ModuleProvisioningRepository {
         """, version, appliedMigrations, moduleId);
   }
 
+  /**
+   * Records (or refreshes) a module's installed version, creating a minimal ledger row for modules that need no db provisioning. This is what dependency checks read installed versions from.
+   */
+  public void recordInstalled(String moduleId, String version) {
+    jdbc.update("""
+        INSERT INTO core.module_provisioning (module_id, core_access, installed_at, installed_version)
+        VALUES (?, 'none', now(), ?)
+        ON CONFLICT (module_id) DO UPDATE
+        SET installed_at = now(), installed_version = EXCLUDED.installed_version
+        """, moduleId, version);
+  }
+
+  /**
+   * Returns the module's installed version, or null if it has no install record.
+   */
+  public String installedVersion(String moduleId) {
+    List<String> rows = jdbc.query("SELECT installed_version FROM core.module_provisioning WHERE module_id = ?", (rs, n) -> rs.getString(1), moduleId);
+    return rows.stream().findFirst().orElse(null);
+  }
+
   public boolean isAuthorized(String moduleId) {
     return queryFlag("authorized", moduleId);
   }
