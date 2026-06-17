@@ -1,0 +1,12 @@
+{
+  "id": "events-demo",
+  "version": "1.0.0",
+  "image": "nginx:alpine",
+  "idp": {},
+  "mounts": [
+    {
+      "source": "events-demo/demo.sh",
+      "target": "/docker-entrypoint.d/40-events-demo.sh"
+    }
+  ]
+}
