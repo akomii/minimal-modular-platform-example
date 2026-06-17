@@ -109,6 +109,8 @@ public class SecurityConfig {
     auth
         // any authenticated user may read who they are (drives the SPA's login-vs-no-access UX)
         .requestMatchers("/api/user").authenticated()
+        // modules (and admins) publish/subscribe on the event bus: any authenticated identity, no per-topic gate
+        .requestMatchers("/api/events/**").authenticated()
         // the platform endpoints additionally require the platform-admin role
         .requestMatchers("/api/modules/**").hasRole(PLATFORM_ADMIN)
         // observability streams (request log, server log) are admin-only too

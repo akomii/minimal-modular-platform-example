@@ -76,11 +76,10 @@
       <artifactId>docker-java-transport-httpclient5</artifactId>
     </dependency>
 
-    <!-- PostgreSQL driver for the core data warehouse database -->
+    <!-- PostgreSQL driver for the core data warehouse database; compile scope so the event bus can use PGConnection for LISTEN/NOTIFY -->
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <scope>runtime</scope>
     </dependency>
 
     <!-- DataSource + connection pool; presence of a DataSource enables Flyway autoconfiguration -->
