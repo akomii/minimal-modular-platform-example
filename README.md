@@ -35,6 +35,7 @@ rights in it, not realm-create.
     - `redirectUris` — for the module's OAuth client.
     - `roles` — client roles created on the module's OAuth client.
     - `users` (optional) — service accounts the module needs, created with a generated password (never in the manifest).
+- **`dependsOn`** (optional) — prerequisite modules, a list of `{ id, version }`. Each `id` must be installed at a version satisfying the constraint (`>=`, `>`, `<=`, `<`, `=`; a bare version means `>=`, e.g. `>=1.0.0`) before this module installs — and a module can't be removed while an installed module still depends on it.
 
 Module roles are not auto-granted to humans — linking roles to real users is the site admin's job.
 
@@ -98,10 +99,14 @@ Under the hood, events are appended to a `core.events` log through a single seri
 
 - **User management** — no API or UI to assign module roles to real users; today this is a manual step in Keycloak.
 - **Module UI integration** — module UIs (e.g. Grafana) aren't embedded in the platform SPA with shared login; goal is to show them in tabs.
-- **Settings UI** — no UI to change backend configuration.
+- **Settings UI** — no UI to view backend configuration.
 - **Database viewer** — no module with a simple UI to browse databases.
+- ui for message bus (messages on different channels)
 
 ToDo Changes to Manifest
 
 - add ui / possible endpoints paths
 - add dependencies to other modules
+
+ToDo
+drawio diagram of current state
