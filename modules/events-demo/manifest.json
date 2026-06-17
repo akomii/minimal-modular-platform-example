@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "image": "nginx:alpine",
   "idp": {},
+  "dependsOn": [
+    { "id": "weather", "version": ">=1.0.0" }
+  ],
   "mounts": [
     {
       "source": "events-demo/demo.sh",

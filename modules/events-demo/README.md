@@ -22,8 +22,13 @@ nginx then stays up so the background subscriber keeps streaming.
 
 ## Run it
 
-Install and start `events-demo` from the management UI (or the module API), then open its log stream.
-Reinstalling replays the prior `demo.ping` events first (they are kept), then the new ones.
+This module also demonstrates **module dependencies**: it declares `weather` as a prerequisite
+(`dependsOn: weather >=1.0.0`), so install `weather` first — otherwise the platform refuses to
+install `events-demo`, and `weather` can't be removed while `events-demo` is installed. (events-demo
+doesn't actually use weather; the prerequisite is purely to exercise the gate.)
+
+Then install and start `events-demo` from the management UI (or the module API) and open its log
+stream. Reinstalling replays the prior `demo.ping` events first (they are kept), then the new ones.
 
 ## Caveats
 
