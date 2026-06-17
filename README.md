@@ -15,6 +15,7 @@ own OAuth client and roles in a shared Keycloak realm.
 - **Authentication** — Keycloak OIDC with two security chains: session-based login for the SPA, bearer JWT for API clients. Realm roles map to Spring roles, and only `platform-admin` users can reach
   the management API.
 - **Module identity** — each module gets its own OAuth client, client roles, and service accounts in the shared realm, reconciled additively on upgrade.
+- **Module communication** — a content-agnostic pub/sub event bus, mediated by core over HTTP+SSE: durable and replayable, behind a swappable `EventStore` (Postgres by default, selected with `events.backend`).
 - **Observability UI** — live streams (SSE) for HTTP requests, server logs, and per-container logs, shown in the management UI.
 - **Error handling** — exceptions map to RFC 7807 `ProblemDetail` responses.
 
@@ -61,7 +62,9 @@ The module's OIDC client maps roles strictly: only users holding the module's ro
 
 ### Demo assumptions
 
+- Migrations are append-only — new versions only append scripts; existing ones are never edited or reordered (pending migrations are found by count).
 - Roles are additive across versions; a role dropped from a v2 manifest is not auto-removed (only purge removes roles).
+- `coreAccess` is fixed at install — raising it in a later version has no effect on upgrade (only install/authorize grant core access).
 - Default-user usernames don't collide with admin-created users.
 - Core schema changes are additive (reversal = drop); core data changes are reversed from the audit log.
 - Downgrade is out of scope.
@@ -69,6 +72,25 @@ The module's OIDC client maps roles strictly: only users holding the module's ro
 ### Known shortcuts
 
 - Module DB passwords are stored in plaintext in the provisioning ledger.
+
+## Module communication (event bus)
+
+Core mediates a content-agnostic pub/sub bus so modules can exchange information with core and with each other. Modules only ever speak HTTP/SSE; core owns a durable, replayable log behind an `EventStore` seam (Postgres by default, selected with `events.backend`), so the backing store can be swapped (e.g. for Kafka) without changing modules. Topics are dynamic — there is no manifest declaration; any authenticated identity may publish or subscribe.
+
+### How it works
+
+- **Publish** — `POST /api/events/{topic}` with a bearer token and an opaque JSON body returns `{"seq": N}`. The publisher is taken from the token (`azp` = the module's OAuth client id). A topic is a single path segment — use dots, not slashes (e.g. `patient.admitted`).
+- **Subscribe** — `GET /api/events/{topic}/stream` (SSE): core replays the topic's events after the caller's cursor, then tails new ones live. Each message carries its `seq` as the SSE `id`.
+- **Resume** — reconnect with the `Last-Event-ID` header (or `?since=<seq>`) to continue exactly where you left off. Delivery is at-least-once; the subscriber dedups by `seq`.
+
+The same mechanism serves all three directions — core→module, module→core, and module→module — since core and every module are just publishers/subscribers on named topics. Core publishes in-process through the bus; modules go through the HTTP/SSE endpoints.
+
+Under the hood, events are appended to a `core.events` log through a single serialized writer (so `seq` is gap-free), and a Postgres `LISTEN/NOTIFY` listener pushes them to live subscribers. Events are kept indefinitely and survive a module's purge.
+
+### Known limitations
+
+- Only modules with an `idp` block can use the bus — they need an OAuth client to obtain a token, so DB-only modules can't publish or subscribe.
+- No per-topic authorization: any authenticated module may subscribe to any topic, including core's (e.g. patient events). Access is gated only by a valid token.
 
 # Open gaps
 
@@ -81,4 +103,3 @@ ToDo Changes to Manifest
 
 - add ui / possible endpoints paths
 - add dependencies to other modules
-- add communication layer between modules
