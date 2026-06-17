@@ -8,6 +8,7 @@ import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.example.modular.core.module.ModuleDefinition;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import org.springframework.web.client.RestClientResponseException;
  */
 @Slf4j
 @Service
+@ConditionalOnProperty(name = "idp.provider", havingValue = "keycloak", matchIfMissing = true)
 public class KeycloakIdpProvisioner implements IdpProvisioner {
 
   private static final ParameterizedTypeReference<List<Map<String, Object>>> LIST_OF_MAPS = new ParameterizedTypeReference<>() {

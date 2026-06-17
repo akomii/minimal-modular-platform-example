@@ -3,12 +3,14 @@ package org.example.modular.core.config;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
  * Keycloak implementation of {@link IdpRoleExtractor}: reads roles from the token's {@code realm_access.roles} claim.
  */
 @Component
+@ConditionalOnProperty(name = "idp.provider", havingValue = "keycloak", matchIfMissing = true)
 public class KeycloakRoleExtractor implements IdpRoleExtractor {
 
   /**

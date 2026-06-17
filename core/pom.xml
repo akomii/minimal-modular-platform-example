@@ -44,14 +44,14 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- Spring Security as a confidential OAuth2/OIDC client (BFF) against Keycloak -->
+    <!-- Spring Security as a confidential OAuth2/OIDC client (BFF) against the identity provider -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-oauth2-client</artifactId>
       <scope>provided</scope>
     </dependency>
 
-    <!-- Validates Keycloak-issued JWTs for API clients (e.g. Postman) sending Bearer tokens -->
+    <!-- Validates IdP-issued JWTs for API clients (e.g. Postman) sending Bearer tokens -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>

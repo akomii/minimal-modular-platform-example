@@ -135,7 +135,7 @@ public class DockerJavaRuntime implements ModuleRuntime {
     HostConfig hostConfig = HostConfig.newHostConfig()
         .withPortBindings(portBindings)
         .withBinds(binds(module))
-        // lets containers reach services on the docker host (postgres, keycloak)
+        // lets containers reach services on the docker host (e.g. postgres, the identity provider)
         .withExtraHosts("host.docker.internal:host-gateway");
     CreateContainerResponse response = dockerClient.createContainerCmd(module.getImage())
         .withName(module.getId())
