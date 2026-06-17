@@ -83,6 +83,8 @@ Core mediates a content-agnostic pub/sub bus so modules can exchange information
 - **Subscribe** — `GET /api/events/{topic}/stream` (SSE): core replays the topic's events after the caller's cursor, then tails new ones live. Each message carries its `seq` as the SSE `id`.
 - **Resume** — reconnect with the `Last-Event-ID` header (or `?since=<seq>`) to continue exactly where you left off. Delivery is at-least-once; the subscriber dedups by `seq`.
 
+A module authenticates as itself with a client-credentials token from its own OAuth client. That client is created with a **Keycloak service account** enabled (Keycloak's machine-to-machine feature), so the module can exchange its injected `MODULE_OIDC_CLIENT_ID`/`MODULE_OIDC_CLIENT_SECRET` for a token; the token's `azp` is the module id, which becomes the event's `publisher`.
+
 The same mechanism serves all three directions — core→module, module→core, and module→module — since core and every module are just publishers/subscribers on named topics. Core publishes in-process through the bus; modules go through the HTTP/SSE endpoints.
 
 Under the hood, events are appended to a `core.events` log through a single serialized writer (so `seq` is gap-free), and a Postgres `LISTEN/NOTIFY` listener pushes them to live subscribers. Events are kept indefinitely and survive a module's purge.

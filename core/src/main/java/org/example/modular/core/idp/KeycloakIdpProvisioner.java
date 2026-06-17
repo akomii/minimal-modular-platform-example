@@ -131,6 +131,8 @@ public class KeycloakIdpProvisioner implements IdpProvisioner {
         "secret", secret,
         "clientAuthenticatorType", "client-secret",
         "standardFlowEnabled", true,
+        // service account: lets the module authenticate as itself (client-credentials) to call core, e.g. the event bus
+        "serviceAccountsEnabled", true,
         "redirectUris", redirectUris);
     Optional<String> existing = findClient(token, moduleId);
     if (existing.isPresent()) {
