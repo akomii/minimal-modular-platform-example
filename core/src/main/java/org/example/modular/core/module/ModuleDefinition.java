@@ -33,18 +33,25 @@ public class ModuleDefinition {
   }
 
   /**
-   * Identity resources the module needs: an OAuth client (named after the module), client roles and optionally service accounts.
+   * Identity resources the module needs: an OAuth client (named after the module), its client roles, optional service accounts the module owns, and role grants to pre-existing platform users.
    */
   @Data
   public static class Idp {
 
     private List<String> redirectUris = new ArrayList<>();
     private List<String> roles = new ArrayList<>();
+    /**
+     * Service accounts the module owns: created on demand with a generated password, granted their roles, and deleted when the module is removed.
+     */
     private List<IdpUser> users = new ArrayList<>();
+    /**
+     * Role grants to pre-existing platform users (e.g. {@code admin}): the listed client roles are assigned to the named user, who is never created or deleted by the module.
+     */
+    private List<IdpUser> grants = new ArrayList<>();
   }
 
   /**
-   * A service account the module ships: created on demand with a generated password and granted the listed roles.
+   * A username paired with the client roles to grant it.
    */
   @Data
   public static class IdpUser {

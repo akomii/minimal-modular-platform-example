@@ -61,6 +61,7 @@ public class KeycloakIdpProvisioner implements IdpProvisioner {
     String clientUuid = ensureClient(token, module.getId(), secret, idp.getRedirectUris());
     idp.getRoles().forEach(role -> ensureClientRole(token, clientUuid, role));
     idp.getUsers().forEach(user -> ensureUser(token, clientUuid, user));
+    idp.getGrants().forEach(grant -> grantExistingUser(token, clientUuid, grant));
     return Map.of(
         "MODULE_OIDC_CLIENT_ID", module.getId(),
         "MODULE_OIDC_CLIENT_SECRET", secret);
@@ -197,6 +198,16 @@ public class KeycloakIdpProvisioner implements IdpProvisioner {
     }
     String id = userId.orElseThrow(() -> new IllegalStateException("User not found after creation: " + user.getUsername()));
     assignClientRoles(token, clientUuid, id, user.getRoles());
+  }
+
+  /**
+   * Grants the listed client roles to a pre-existing platform user (looked up by username), skipping with a warning if no such user exists. Unlike {@link #ensureUser}, it never creates or deletes the
+   * user, so {@link #purge} leaves them in place (deleting the client removes the grants).
+   */
+  private void grantExistingUser(String token, String clientUuid, ModuleDefinition.IdpUser grant) {
+    findUser(token, grant.getUsername()).ifPresentOrElse(
+        id -> assignClientRoles(token, clientUuid, id, grant.getRoles()),
+        () -> log.warn("Skipping role grant for module client: no existing user {}", grant.getUsername()));
   }
 
   /**
