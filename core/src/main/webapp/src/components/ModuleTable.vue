@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from "vue"
 import DataTable from "primevue/datatable"
 import Column from "primevue/column"
 import Button from "primevue/button"
@@ -14,6 +15,18 @@ import {
 
 const { modules, list, install, authorize, start, stop, remove } = useModules()
 const confirm = useConfirm()
+
+// id of the module whose action is in flight — drives the row's button spinner
+const busyId = ref<string | null>(null)
+
+async function withBusy(id: string, action: () => Promise<void>): Promise<void> {
+  busyId.value = id
+  try {
+    await action()
+  } finally {
+    busyId.value = null
+  }
+}
 
 function formatDependencies(deps: ModuleDependency[]): string {
   return deps.map((d) => `${d.id} ${d.version}`).join(", ")
@@ -42,17 +55,18 @@ function statusSeverity(
 // Modules requesting core access must be authorized first — confirm both steps in one dialog.
 function confirmInstall(module: ModuleInfo): void {
   if (module.coreAccess === "none" || module.authorized) {
-    void install(module.id)
+    void withBusy(module.id, () => install(module.id))
     return
   }
   confirm.require({
     header: "Authorize + Install",
     message: `"${module.id}" requests ${module.coreAccess} access to the core schema. Authorize it and install?`,
     icon: "pi pi-exclamation-triangle",
-    accept: async () => {
-      await authorize(module.id)
-      await install(module.id)
-    }
+    accept: () =>
+      withBusy(module.id, async () => {
+        await authorize(module.id)
+        await install(module.id)
+      })
   })
 }
 
@@ -63,9 +77,7 @@ function confirmRemove(module: ModuleInfo, purge: boolean): void {
       ? `Remove "${module.id}" and purge its database (drops schema and data)?`
       : `Remove "${module.id}"? Its database schema and data are kept.`,
     icon: "pi pi-exclamation-triangle",
-    accept: () => {
-      void remove(module.id, purge)
-    }
+    accept: () => withBusy(module.id, () => remove(module.id, purge))
   })
 }
 </script>
@@ -136,6 +148,7 @@ function confirmRemove(module: ModuleInfo, purge: boolean): void {
               v-if="data.status === 'NOT_CREATED'"
               label="Install"
               size="small"
+              :loading="busyId === data.id"
               @click="confirmInstall(data)"
             />
             <Button
@@ -143,20 +156,23 @@ function confirmRemove(module: ModuleInfo, purge: boolean): void {
               label="Start"
               size="small"
               severity="success"
-              @click="start(data.id)"
+              :loading="busyId === data.id"
+              @click="withBusy(data.id, () => start(data.id))"
             />
             <Button
               v-if="data.status === 'RUNNING'"
               label="Stop"
               size="small"
               severity="warn"
-              @click="stop(data.id)"
+              :loading="busyId === data.id"
+              @click="withBusy(data.id, () => stop(data.id))"
             />
             <SplitButton
               v-if="data.status === 'STOPPED'"
               label="Remove"
               size="small"
               severity="danger"
+              :loading="busyId === data.id"
               :model="[
                 {
                   label: 'Remove + Purge',
