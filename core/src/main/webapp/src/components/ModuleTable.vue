@@ -20,8 +20,8 @@ function formatDependencies(deps: ModuleDependency[]): string {
 }
 
 // Published host port(s) — the "host" side of each host:container mapping.
-function formatPorts(ports: string[]): string {
-  return ports.map((p) => p.split(":")[0]).join(", ")
+function hostPorts(ports: string[]): string[] {
+  return ports.map((p) => p.split(":")[0])
 }
 
 function statusSeverity(
@@ -80,7 +80,17 @@ function confirmRemove(module: ModuleInfo, purge: boolean): void {
       <Column field="version" header="Version" />
       <Column header="Port">
         <template #body="{ data }">
-          <span v-if="data.ports?.length">{{ formatPorts(data.ports) }}</span>
+          <template v-if="data.ports?.length">
+            <a
+              v-for="port in hostPorts(data.ports)"
+              :key="port"
+              :href="`http://localhost:${port}`"
+              target="_blank"
+              rel="noopener"
+              class="port-link"
+              >{{ port }}</a
+            >
+          </template>
           <span v-else>–</span>
         </template>
       </Column>
@@ -163,5 +173,9 @@ function confirmRemove(module: ModuleInfo, purge: boolean): void {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+.port-link {
+  margin-right: 0.5rem;
 }
 </style>
