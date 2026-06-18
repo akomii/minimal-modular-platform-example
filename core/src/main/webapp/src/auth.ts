@@ -32,6 +32,8 @@ export function login(): void {
 }
 
 export async function logout(): Promise<void> {
-  await apiCall("POST", "/logout")
-  window.location.href = "/"
+  // the backend returns the IdP end-session URL; navigating to it ends the Keycloak SSO session too, then Keycloak redirects back to the app
+  const res = await apiCall("POST", "/logout")
+  window.location.href =
+    typeof res.body === "string" && res.body ? res.body : "/"
 }

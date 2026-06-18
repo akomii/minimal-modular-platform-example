@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -21,11 +22,13 @@ import org.springframework.security.config.annotation.web.configurers.AuthorizeH
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
+import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
-import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfToken;
@@ -79,7 +82,7 @@ public class SecurityConfig {
    */
   @Bean
   @Order(2)
-  SecurityFilterChain bffFilterChain(HttpSecurity http) throws Exception {
+  SecurityFilterChain bffFilterChain(HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository) throws Exception {
     http
         .authorizeHttpRequests(auth -> {
           auth.requestMatchers("/", "/index.html", "/favicon.ico", "/assets/**", "/error").permitAll();
@@ -87,9 +90,9 @@ public class SecurityConfig {
           auth.anyRequest().authenticated();
         })
         .oauth2Login(Customizer.withDefaults())
-        // local app logout: clear the server session and return 204 (no IdP round-trip)
+        // RP-initiated logout: end the Keycloak session too, not just the local one
         .logout(logout -> logout
-            .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)))
+            .logoutSuccessHandler(oidcLogoutSuccessHandler(clientRegistrationRepository)))
         // API calls get a 401 they can react to, instead of a 302 redirect to the IdP
         .exceptionHandling(ex -> ex.defaultAuthenticationEntryPointFor(
             new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
@@ -100,6 +103,22 @@ public class SecurityConfig {
             .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
         .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class);
     return http.build();
+  }
+
+  /**
+   * RP-initiated (single) logout: it ends the Keycloak session, not just the local one. Because the SPA triggers logout with a fetch (so the CSRF token rides in a header), it writes the IdP
+   * end-session URL to the response body for the SPA to navigate to, instead of the 302 redirect a fetch would otherwise follow cross-origin to the IdP.
+   */
+  private LogoutSuccessHandler oidcLogoutSuccessHandler(ClientRegistrationRepository clientRegistrationRepository) {
+    OidcClientInitiatedLogoutSuccessHandler handler = new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
+    // Keycloak redirects here once its session is cleared; matches the core client's post.logout.redirect.uris
+    handler.setPostLogoutRedirectUri("{baseUrl}/");
+    handler.setRedirectStrategy((request, response, url) -> {
+      response.setStatus(HttpStatus.OK.value());
+      response.setContentType(MediaType.TEXT_PLAIN_VALUE);
+      response.getWriter().write(url);
+    });
+    return handler;
   }
 
   /**
