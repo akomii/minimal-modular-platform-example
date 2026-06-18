@@ -7,14 +7,10 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.example.modular.core.module.ModuleDefinition;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
 /**
@@ -30,24 +26,15 @@ public class KeycloakIdpProvisioner implements IdpProvisioner {
   private static final ParameterizedTypeReference<Map<String, Object>> MAP = new ParameterizedTypeReference<>() {
   };
 
-  private final RestClient rest = RestClient.create();
-  private final String issuerUri;
-  private final String adminBase;
-  private final String clientId;
-  private final String clientSecret;
+  private final KeycloakAdminClient admin;
 
-  public KeycloakIdpProvisioner(
-      @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}") String issuerUri,
-      @Value("${spring.security.oauth2.client.registration.idp.client-id}") String clientId,
-      @Value("${spring.security.oauth2.client.registration.idp.client-secret}") String clientSecret) {
-    this.issuerUri = issuerUri;
-    this.adminBase = issuerUri.replace("/realms/", "/admin/realms/");
-    this.clientId = clientId;
-    this.clientSecret = clientSecret;
+  public KeycloakIdpProvisioner(KeycloakAdminClient admin) {
+    this.admin = admin;
   }
 
   /**
-   * Reconciles the module's identity resources (OAuth client with a fresh secret, its client roles, service accounts) and returns the client id/secret env vars for the container.
+   * Reconciles the module's identity resources (OAuth client with a fresh secret, its client roles, service accounts, role grants to existing users) and returns the client id/secret env vars for the
+   * container.
    */
   @Override
   public Map<String, String> provision(ModuleDefinition module) {
@@ -56,7 +43,7 @@ public class KeycloakIdpProvisioner implements IdpProvisioner {
       return Map.of();
     }
     log.info("Provisioning identity resources for module {}", module.getId());
-    String token = adminToken();
+    String token = admin.token();
     String secret = UUID.randomUUID().toString();
     String clientUuid = ensureClient(token, module.getId(), secret, idp.getRedirectUris());
     idp.getRoles().forEach(role -> ensureClientRole(token, clientUuid, role));
@@ -78,29 +65,13 @@ public class KeycloakIdpProvisioner implements IdpProvisioner {
       return;
     }
     log.info("Purging identity resources for module {}", module.getId());
-    String token = adminToken();
+    String token = admin.token();
     // deleting the client also removes its client roles and any user assignments of them
-    findClient(token, module.getId()).ifPresent(internalId -> deleteQuietly(token, adminBase + "/clients/" + internalId));
+    admin.findClient(token, module.getId()).ifPresent(internalId ->
+        deleteQuietly(token, admin.adminBase() + "/clients/" + internalId));
     // users are realm-level, so the module's own service accounts must be removed explicitly
     idp.getUsers().forEach(user ->
-        findUser(token, user.getUsername()).ifPresent(id -> deleteQuietly(token, adminBase + "/users/" + id)));
-  }
-
-  /**
-   * Obtains a Keycloak admin access token via the core client's client-credentials grant.
-   */
-  private String adminToken() {
-    MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-    form.add("grant_type", "client_credentials");
-    form.add("client_id", clientId);
-    form.add("client_secret", clientSecret);
-    Map<String, Object> response = rest.post()
-        .uri(issuerUri + "/protocol/openid-connect/token")
-        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-        .body(form)
-        .retrieve()
-        .body(MAP);
-    return (String) response.get("access_token");
+        findUser(token, user.getUsername()).ifPresent(id -> deleteQuietly(token, admin.adminBase() + "/users/" + id)));
   }
 
   /**
@@ -108,8 +79,8 @@ public class KeycloakIdpProvisioner implements IdpProvisioner {
    */
   private void ensureClientRole(String token, String clientUuid, String role) {
     try {
-      rest.post()
-          .uri(adminBase + "/clients/" + clientUuid + "/roles")
+      admin.rest().post()
+          .uri(admin.adminBase() + "/clients/" + clientUuid + "/roles")
           .headers(headers -> headers.setBearerAuth(token))
           .contentType(MediaType.APPLICATION_JSON)
           .body(Map.of("name", role))
@@ -137,11 +108,11 @@ public class KeycloakIdpProvisioner implements IdpProvisioner {
         // service account: lets the module authenticate as itself (client-credentials) to call core, e.g. the event bus
         "serviceAccountsEnabled", true,
         "redirectUris", redirectUris);
-    Optional<String> existing = findClient(token, moduleId);
+    Optional<String> existing = admin.findClient(token, moduleId);
     if (existing.isPresent()) {
       // reinstall: refresh secret and redirect uris (protocol mappers survive the update)
-      rest.put()
-          .uri(adminBase + "/clients/" + existing.get())
+      admin.rest().put()
+          .uri(admin.adminBase() + "/clients/" + existing.get())
           .headers(headers -> headers.setBearerAuth(token))
           .contentType(MediaType.APPLICATION_JSON)
           .body(representation)
@@ -163,15 +134,15 @@ public class KeycloakIdpProvisioner implements IdpProvisioner {
             "id.token.claim", "true",
             "access.token.claim", "true",
             "userinfo.token.claim", "true"))));
-    rest.post()
-        .uri(adminBase + "/clients")
+    admin.rest().post()
+        .uri(admin.adminBase() + "/clients")
         .headers(headers -> headers.setBearerAuth(token))
         .contentType(MediaType.APPLICATION_JSON)
         .body(withMapper)
         .retrieve()
         .toBodilessEntity();
     log.info("Created OAuth client {}", moduleId);
-    return findClient(token, moduleId)
+    return admin.findClient(token, moduleId)
         .orElseThrow(() -> new IllegalStateException("Client not found after creation: " + moduleId));
   }
 
@@ -182,8 +153,8 @@ public class KeycloakIdpProvisioner implements IdpProvisioner {
     Optional<String> userId = findUser(token, user.getUsername());
     if (userId.isEmpty()) {
       String password = UUID.randomUUID().toString().replace("-", "").substring(0, 12);
-      rest.post()
-          .uri(adminBase + "/users")
+      admin.rest().post()
+          .uri(admin.adminBase() + "/users")
           .headers(headers -> headers.setBearerAuth(token))
           .contentType(MediaType.APPLICATION_JSON)
           .body(Map.of(
@@ -218,14 +189,14 @@ public class KeycloakIdpProvisioner implements IdpProvisioner {
       return;
     }
     List<Map<String, Object>> representations = roles.stream()
-        .map(role -> rest.get()
-            .uri(adminBase + "/clients/" + clientUuid + "/roles/{name}", role)
+        .map(role -> admin.rest().get()
+            .uri(admin.adminBase() + "/clients/" + clientUuid + "/roles/{name}", role)
             .headers(headers -> headers.setBearerAuth(token))
             .retrieve()
             .body(MAP))
         .toList();
-    rest.post()
-        .uri(adminBase + "/users/" + userId + "/role-mappings/clients/" + clientUuid)
+    admin.rest().post()
+        .uri(admin.adminBase() + "/users/" + userId + "/role-mappings/clients/" + clientUuid)
         .headers(headers -> headers.setBearerAuth(token))
         .contentType(MediaType.APPLICATION_JSON)
         .body(representations)
@@ -234,23 +205,11 @@ public class KeycloakIdpProvisioner implements IdpProvisioner {
   }
 
   /**
-   * Looks up a client's internal id by its clientId, or empty if none exists.
-   */
-  private Optional<String> findClient(String token, String moduleId) {
-    List<Map<String, Object>> clients = rest.get()
-        .uri(adminBase + "/clients?clientId={id}", moduleId)
-        .headers(headers -> headers.setBearerAuth(token))
-        .retrieve()
-        .body(LIST_OF_MAPS);
-    return clients == null || clients.isEmpty() ? Optional.empty() : Optional.of((String) clients.get(0).get("id"));
-  }
-
-  /**
    * Looks up a user's id by exact username, or empty if none exists.
    */
   private Optional<String> findUser(String token, String username) {
-    List<Map<String, Object>> users = rest.get()
-        .uri(adminBase + "/users?username={u}&exact=true", username)
+    List<Map<String, Object>> users = admin.rest().get()
+        .uri(admin.adminBase() + "/users?username={u}&exact=true", username)
         .headers(headers -> headers.setBearerAuth(token))
         .retrieve()
         .body(LIST_OF_MAPS);
@@ -262,7 +221,7 @@ public class KeycloakIdpProvisioner implements IdpProvisioner {
    */
   private void deleteQuietly(String token, String uri) {
     try {
-      rest.delete().uri(uri).headers(headers -> headers.setBearerAuth(token)).retrieve().toBodilessEntity();
+      admin.rest().delete().uri(uri).headers(headers -> headers.setBearerAuth(token)).retrieve().toBodilessEntity();
     } catch (RestClientResponseException e) {
       if (e.getStatusCode().value() != 404) {
         throw e;

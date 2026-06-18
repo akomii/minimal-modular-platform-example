@@ -63,17 +63,15 @@ public class SecurityConfig {
   @Order(1)
   @ConditionalOnProperty(name = "security.api-token.enabled", havingValue = "true")
   SecurityFilterChain apiTokenFilterChain(HttpSecurity http) throws Exception {
-    http
-        .securityMatcher(bearerTokenRequests())
-        .authorizeHttpRequests(auth -> {
+    http.securityMatcher(bearerTokenRequests()).authorizeHttpRequests(auth -> {
           apiAuthorizationRules(auth);
           auth.anyRequest().authenticated();
-        })
-        .sessionManagement(session ->
-            session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .csrf(csrf -> csrf.disable())
+        }).sessionManagement(session ->
+            session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)).csrf(csrf ->
+            csrf.disable())
         .oauth2ResourceServer(oauth2 ->
-            oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
+            oauth2.jwt(jwt ->
+                jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
     return http.build();
   }
 
@@ -83,24 +81,20 @@ public class SecurityConfig {
   @Bean
   @Order(2)
   SecurityFilterChain bffFilterChain(HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository) throws Exception {
-    http
-        .authorizeHttpRequests(auth -> {
+    http.authorizeHttpRequests(auth -> {
           auth.requestMatchers("/", "/index.html", "/favicon.ico", "/assets/**", "/error").permitAll();
           apiAuthorizationRules(auth);
           auth.anyRequest().authenticated();
-        })
-        .oauth2Login(Customizer.withDefaults())
+        }).oauth2Login(Customizer.withDefaults())
         // RP-initiated logout: end the Keycloak session too, not just the local one
-        .logout(logout -> logout
-            .logoutSuccessHandler(oidcLogoutSuccessHandler(clientRegistrationRepository)))
+        .logout(logout ->
+            logout.logoutSuccessHandler(oidcLogoutSuccessHandler(clientRegistrationRepository)))
         // API calls get a 401 they can react to, instead of a 302 redirect to the IdP
-        .exceptionHandling(ex -> ex.defaultAuthenticationEntryPointFor(
-            new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
-            PathPatternRequestMatcher.withDefaults().matcher("/api/**")))
+        .exceptionHandling(ex ->
+            ex.defaultAuthenticationEntryPointFor(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED), PathPatternRequestMatcher.withDefaults().matcher("/api/**")))
         // CSRF for a cookie-based SPA — Spring Security 6 reference recipe
-        .csrf(csrf -> csrf
-            .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-            .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
+        .csrf(csrf ->
+            csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()).csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
         .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class);
     return http.build();
   }
@@ -132,6 +126,8 @@ public class SecurityConfig {
         .requestMatchers("/api/events/**").authenticated()
         // the platform endpoints additionally require the platform-admin role
         .requestMatchers("/api/modules/**").hasRole(PLATFORM_ADMIN)
+        // user/role administration is admin-only
+        .requestMatchers("/api/users/**", "/api/roles").hasRole(PLATFORM_ADMIN)
         // observability streams (request log, server log) are admin-only too
         .requestMatchers("/api/requests/**", "/api/server/**").hasRole(PLATFORM_ADMIN);
   }
