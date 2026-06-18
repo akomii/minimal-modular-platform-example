@@ -35,15 +35,16 @@ rights in it, not realm-create.
     - `redirectUris` — for the module's OAuth client.
     - `roles` — client roles created on the module's OAuth client.
     - `users` (optional) — service accounts the module needs, created with a generated password (never in the manifest).
+    - `grants` (optional) — client roles to assign to pre-existing platform users (matched by username, e.g. `admin`) at install; the user is never created or removed by the module.
 - **`dependsOn`** (optional) — prerequisite modules, a list of `{ id, version }`. Each `id` must be installed at a version satisfying the constraint (`>=`, `>`, `<=`, `<`, `=`; a bare version means `>=`, e.g. `>=1.0.0`) before this module installs — and a module can't be removed while an installed module still depends on it.
 
-Module roles are not auto-granted to humans — linking roles to real users is the site admin's job.
+A manifest can pre-grant module roles to existing platform users via `idp.grants`; assigning roles to any other users remains the site admin's job.
 
 ### Lifecycle
 
-- **Install** (no record yet) — create the DB role + schema, run all migrations, grant `coreAccess`; create the OAuth client + client roles + default users; pull the image and start the container with
+- **Install** (no record yet) — create the DB role + schema, run all migrations, grant `coreAccess`; create the OAuth client + client roles + default users, and grant declared client roles to existing platform users; pull the image and start the container with
   the DB credentials and OIDC client secret injected as env vars; record the installed version, applied migrations, and core changes in the audit log.
-- **Upgrade** (catalog version > installed) — run only the pending migrations; additively add any new roles, redirect URIs, and default users; redeploy the container on the new image with refreshed
+- **Upgrade** (catalog version > installed) — run only the pending migrations; additively add any new roles, redirect URIs, default users, and role grants; redeploy the container on the new image with refreshed
   env (DB creds + rotated secret). The catalog must already hold the new manifest (restart core to reload it).
 - **Purge** (uninstall) — replay the audit log to undo core changes; drop the module schema and role; delete the OAuth client (Keycloak removes its roles and assignments) and default users. Existing
   platform users stay and only lose the deleted module roles.
@@ -97,7 +98,7 @@ Under the hood, events are appended to a `core.events` log through a single seri
 
 # Open gaps
 
-- **User management** — no API or UI to assign module roles to real users; today this is a manual step in Keycloak.
+- **User management** — a manifest can pre-grant module roles to existing users via `idp.grants`, but there's still no API or UI to assign roles to arbitrary users at runtime; ad-hoc assignment stays a manual step in Keycloak.
 - **Module UI integration** — module UIs (e.g. Grafana) aren't embedded in the platform SPA with shared login; goal is to show them in tabs.
 - **Settings UI** — no UI to view backend configuration.
 - **Database viewer** — no module with a simple UI to browse databases.
@@ -106,7 +107,6 @@ Under the hood, events are appended to a `core.events` log through a single seri
 ToDo Changes to Manifest
 
 - add ui / possible endpoints paths
-- add dependencies to other modules
 
 ToDo
 drawio diagram of current state
