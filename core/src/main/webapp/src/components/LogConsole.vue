@@ -41,7 +41,8 @@ watch(
 
 <style scoped>
 .log-output {
-  height: 48rem;
+  /* fill down to near the bottom of the viewport (offsets app header, outer + nested tab strips, and column padding) */
+  height: calc(100vh - 15rem);
   margin: 0;
   padding: 0.75rem;
   border-radius: 6px;

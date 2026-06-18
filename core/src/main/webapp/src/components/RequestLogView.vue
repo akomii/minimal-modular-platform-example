@@ -69,7 +69,8 @@ function formatTime(iso: string): string {
 
 <style scoped>
 .req-list {
-  height: 24rem;
+  /* fill down to near the bottom of the viewport (offsets app header, outer + nested tab strips, and column padding) */
+  height: calc(100vh - 15rem);
   overflow: auto;
   font-family: monospace;
   font-size: 0.85rem;
