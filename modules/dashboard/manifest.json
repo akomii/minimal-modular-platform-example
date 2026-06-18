@@ -5,10 +5,25 @@
   "ports": [
     "8084:3000"
   ],
+  "ui": [
+    {
+      "name": "Dashboard",
+      "path": "/d/patients-overview?kiosk"
+    }
+  ],
+  "endpoints": [
+    {
+      "label": "Health",
+      "method": "GET",
+      "path": "/api/health"
+    }
+  ],
   "env": {
     "GF_SERVER_ROOT_URL": "http://localhost:8084",
     "GF_SECURITY_ADMIN_USER": "grafana-superadmin",
+    "GF_SECURITY_ALLOW_EMBEDDING": "true",
     "GF_AUTH_DISABLE_LOGIN_FORM": "true",
+    "GF_AUTH_GENERIC_OAUTH_AUTO_LOGIN": "true",
     "GF_AUTH_GENERIC_OAUTH_ENABLED": "true",
     "GF_AUTH_GENERIC_OAUTH_NAME": "Platform Login",
     "GF_AUTH_GENERIC_OAUTH_CLIENT_ID": "${MODULE_OIDC_CLIENT_ID}",
