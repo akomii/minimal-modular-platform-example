@@ -15,6 +15,7 @@ own OAuth client and roles in a shared Keycloak realm.
 - **Authentication** — Keycloak OIDC with two security chains: session-based login for the SPA, bearer JWT for API clients. Realm roles map to Spring roles, and only `platform-admin` users can reach
   the management API.
 - **Module identity** — each module gets its own OAuth client, client roles, and service accounts in the shared realm, reconciled additively on upgrade.
+- **User management** — an admin Users tab (backed by `/api/users` and `/api/roles`) lists platform users and grants/revokes their roles — `platform-admin` plus each installed module's client roles — through a checkbox matrix.
 - **Module communication** — a content-agnostic pub/sub event bus, mediated by core over HTTP+SSE: durable and replayable, behind a swappable `EventStore` (Postgres by default, selected with `events.backend`).
 - **Observability UI** — live streams (SSE) for HTTP requests, server logs, and per-container logs, shown in the management UI.
 - **Error handling** — exceptions map to RFC 7807 `ProblemDetail` responses.
@@ -38,7 +39,7 @@ rights in it, not realm-create.
     - `grants` (optional) — client roles to assign to pre-existing platform users (matched by username, e.g. `admin`) at install; the user is never created or removed by the module.
 - **`dependsOn`** (optional) — prerequisite modules, a list of `{ id, version }`. Each `id` must be installed at a version satisfying the constraint (`>=`, `>`, `<=`, `<`, `=`; a bare version means `>=`, e.g. `>=1.0.0`) before this module installs — and a module can't be removed while an installed module still depends on it.
 
-A manifest can pre-grant module roles to existing platform users via `idp.grants`; assigning roles to any other users remains the site admin's job.
+A manifest can pre-grant module roles to existing platform users via `idp.grants`; beyond that, the admin assigns roles to users from the Users tab.
 
 ### Lifecycle
 
@@ -60,7 +61,7 @@ The log is written only via a `SECURITY DEFINER` trigger and by the provisioner,
 
 ### Access control
 
-The module's OIDC client maps roles strictly: only users holding the module's role can use it. The site admin assigns that role to chosen users.
+The module's OIDC client maps roles strictly: only users holding the module's role can use it. The admin assigns that role to chosen users from the Users tab (or directly in Keycloak).
 
 ### Demo assumptions
 
@@ -98,7 +99,6 @@ Under the hood, events are appended to a `core.events` log through a single seri
 
 # Open gaps
 
-- **User management** — a manifest can pre-grant module roles to existing users via `idp.grants`, but there's still no API or UI to assign roles to arbitrary users at runtime; ad-hoc assignment stays a manual step in Keycloak.
 - **Module UI integration** — module UIs (e.g. Grafana) aren't embedded in the platform SPA with shared login; goal is to show them in tabs.
 - **Settings UI** — no UI to view backend configuration.
 - **Database viewer** — no module with a simple UI to browse databases.
