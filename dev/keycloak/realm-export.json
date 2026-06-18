@@ -51,6 +51,7 @@
     {
       "username": "admin",
       "enabled": true,
+      "email": "admin@example.com",
       "emailVerified": true,
       "firstName": "Platform",
       "lastName": "Admin",
@@ -84,6 +85,7 @@
     {
       "username": "guest",
       "enabled": true,
+      "email": "guest@example.com",
       "emailVerified": true,
       "firstName": "No",
       "lastName": "Access",

@@ -7,6 +7,7 @@
   ],
   "env": {
     "GF_SERVER_ROOT_URL": "http://localhost:8084",
+    "GF_SECURITY_ADMIN_USER": "grafana-superadmin",
     "GF_AUTH_DISABLE_LOGIN_FORM": "true",
     "GF_AUTH_GENERIC_OAUTH_ENABLED": "true",
     "GF_AUTH_GENERIC_OAUTH_NAME": "Platform Login",
@@ -36,6 +37,14 @@
     "roles": [
       "dashboard-admin",
       "dashboard-user"
+    ],
+    "grants": [
+      {
+        "username": "admin",
+        "roles": [
+          "dashboard-admin"
+        ]
+      }
     ]
   }
 }
