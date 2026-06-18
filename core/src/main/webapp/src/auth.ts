@@ -5,9 +5,10 @@ export interface UserInfo {
   roles: string[]
 }
 
-export interface ModuleAccess {
-  allowed: boolean
-  status: number
+export interface ModuleUi {
+  moduleId: string
+  label: string
+  url: string
 }
 
 export async function fetchUser(): Promise<UserInfo | null> {
@@ -19,11 +20,12 @@ export async function fetchUser(): Promise<UserInfo | null> {
   return res.json()
 }
 
-export async function probeModules(): Promise<ModuleAccess> {
-  const res = await fetch("/api/modules", {
+// The module UI tabs the current user may see (empty for a user with no module roles).
+export async function fetchModuleUis(): Promise<ModuleUi[]> {
+  const res = await fetch("/api/ui", {
     headers: { Accept: "application/json" }
   })
-  return { allowed: res.ok, status: res.status }
+  return res.ok ? res.json() : []
 }
 
 export function login(): void {

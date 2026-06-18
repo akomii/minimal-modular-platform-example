@@ -123,8 +123,8 @@ public class SecurityConfig {
    */
   private static void apiAuthorizationRules(AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth) {
     auth
-        // any authenticated user may read who they are (drives the SPA's login-vs-no-access UX)
-        .requestMatchers("/api/user").authenticated()
+        // any authenticated user may read who they are and which module UIs they may see (drives the SPA's tabs and login-vs-no-access UX)
+        .requestMatchers("/api/user", "/api/ui").authenticated()
         // modules (and admins) publish/subscribe on the event bus: any authenticated identity, no per-topic gate
         .requestMatchers("/api/events/**").authenticated()
         // the platform endpoints additionally require the platform-admin role

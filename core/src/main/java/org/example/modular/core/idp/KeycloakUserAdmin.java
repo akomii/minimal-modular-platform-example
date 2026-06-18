@@ -47,13 +47,22 @@ public class KeycloakUserAdmin implements IdpUserAdmin {
         .toList();
   }
 
+  @Override
+  public List<RoleRef> rolesOf(String userId) {
+    return roleRefs(admin.token(), userId);
+  }
+
+  private DirectoryUser toDirectoryUser(String token, Map<String, Object> user) {
+    String id = (String) user.get("id");
+    return new DirectoryUser(id, (String) user.get("username"), (String) user.get("email"), roleRefs(token, id));
+  }
+
   /**
    * Fetches a user's combined realm + client role mappings (one call) and maps them to provider-agnostic role refs.
    */
-  private DirectoryUser toDirectoryUser(String token, Map<String, Object> user) {
-    String id = (String) user.get("id");
+  private List<RoleRef> roleRefs(String token, String userId) {
     Map<String, Object> mappings = admin.rest().get()
-        .uri(admin.adminBase() + "/users/" + id + "/role-mappings")
+        .uri(admin.adminBase() + "/users/" + userId + "/role-mappings")
         .headers(headers -> headers.setBearerAuth(token))
         .retrieve()
         .body(MAP);
@@ -70,7 +79,7 @@ public class KeycloakUserAdmin implements IdpUserAdmin {
         });
       }
     }
-    return new DirectoryUser(id, (String) user.get("username"), (String) user.get("email"), roles);
+    return roles;
   }
 
   private static String roleName(Object roleRepresentation) {

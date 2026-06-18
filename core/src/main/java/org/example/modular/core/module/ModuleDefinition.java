@@ -21,6 +21,8 @@ public class ModuleDefinition {
   private Db db;
   private Idp idp;
   private List<Dependency> dependsOn = new ArrayList<>();
+  private List<UiPage> ui = new ArrayList<>();
+  private List<Endpoint> endpoints = new ArrayList<>();
 
   /**
    * A read-only host-to-container file mount (manifest {@code source} path resolved against the modules directory, container {@code target} path).
@@ -80,5 +82,27 @@ public class ModuleDefinition {
 
     private String id;
     private String version;
+  }
+
+  /**
+   * A web page the module exposes for embedding as a tab: a display {@code name} and a {@code path} relative to the module's published port.
+   */
+  @Data
+  public static class UiPage {
+
+    private String name;
+    private String path;
+  }
+
+  /**
+   * An HTTP endpoint the module exposes, declared for discovery only: a display {@code label}, the HTTP {@code method}, and a {@code path} relative to the module's published port. Core records it but
+   * does not call it.
+   */
+  @Data
+  public static class Endpoint {
+
+    private String label;
+    private String method;
+    private String path;
   }
 }

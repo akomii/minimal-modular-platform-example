@@ -1,24 +1,22 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue"
-import {
-  fetchUser,
-  login,
-  type ModuleAccess,
-  probeModules,
-  type UserInfo
-} from "./auth"
+import { computed, onMounted, ref } from "vue"
+import { fetchUser, login, type UserInfo } from "./auth"
 import UserBar from "./components/UserBar.vue"
+import { useModuleUis } from "./composables/useModuleUis"
 
 const loading = ref(true)
 const unreachable = ref(false)
 const user = ref<UserInfo | null>(null)
-const moduleAccess = ref<ModuleAccess | null>(null)
+const { moduleUis, refresh } = useModuleUis()
+
+// /api/user reports realm roles upper-snake-cased (platform-admin -> PLATFORM_ADMIN)
+const isAdmin = computed(() => user.value?.roles.includes("PLATFORM_ADMIN") ?? false)
 
 onMounted(async () => {
   try {
     user.value = await fetchUser()
     if (user.value) {
-      moduleAccess.value = await probeModules()
+      await refresh()
     }
   } catch {
     unreachable.value = true
@@ -29,8 +27,13 @@ onMounted(async () => {
 </script>
 
 <template>
-  <!-- Signed-in admin: the management UI owns the header (tabs + user bar) and body -->
-  <router-view v-if="user && moduleAccess?.allowed" :user="user" />
+  <!-- Admins get the management tabs; anyone with a module UI tab gets in too. The view owns the header (tabs + user bar). -->
+  <router-view
+    v-if="user && (isAdmin || moduleUis.length > 0)"
+    :user="user"
+    :ui-tabs="moduleUis"
+    :is-admin="isAdmin"
+  />
 
   <!-- Every other state keeps the plain title bar plus a notice -->
   <template v-else>
@@ -51,8 +54,8 @@ onMounted(async () => {
     </section>
 
     <p v-else class="notice denied">
-      ✗ Module API forbidden ({{ moduleAccess?.status }}) — you lack the
-      <code>platform-admin</code> role.
+      ✗ No access — you don't have a role for any module. Ask a platform admin
+      to grant you one.
     </p>
   </template>
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from "vue"
+import { computed, onMounted } from "vue"
 import ConfirmDialog from "primevue/confirmdialog"
 import Toast from "primevue/toast"
 import Tabs from "primevue/tabs"
@@ -10,29 +10,50 @@ import TabPanel from "primevue/tabpanel"
 import ModuleTable from "./ModuleTable.vue"
 import LogsPanel from "./LogsPanel.vue"
 import UserManagement from "./UserManagement.vue"
+import ModuleUiTab from "./ModuleUiTab.vue"
 import UserBar from "./UserBar.vue"
-import type { UserInfo } from "../auth"
+import type { ModuleUi, UserInfo } from "../auth"
 import { useModules } from "../composables/useModules"
 
-const props = defineProps<{ user: UserInfo }>()
+const props = defineProps<{
+  user: UserInfo
+  uiTabs: ModuleUi[]
+  isAdmin: boolean
+}>()
 const { list } = useModules()
 
+// each module UI page gets its own tab; this is its stable tab key
+function tabValue(tab: ModuleUi): string {
+  return `${tab.moduleId}:${tab.label}`
+}
+
+// admins land on Modules; a UI-only user lands on their first module tab
+const activeTab = computed(() =>
+  props.isAdmin ? "modules" : props.uiTabs.length ? tabValue(props.uiTabs[0]) : ""
+)
+
 onMounted(() => {
-  void list()
+  // only admins may call the module API
+  if (props.isAdmin) {
+    void list()
+  }
 })
 </script>
 
 <template>
-  <Tabs value="modules" class="layout">
+  <Tabs :value="activeTab" class="layout">
     <header class="topbar">
       <TabList>
-        <Tab value="modules">Modules</Tab>
-        <Tab value="users">Users</Tab>
+        <Tab v-if="isAdmin" value="modules">Modules</Tab>
+        <Tab v-if="isAdmin" value="users">Users</Tab>
+        <Tab v-for="tab in uiTabs" :key="tabValue(tab)" :value="tabValue(tab)">{{
+          tab.label
+        }}</Tab>
       </TabList>
-      <UserBar :user="props.user" />
+      <UserBar :user="user" />
     </header>
     <TabPanels>
-      <TabPanel value="modules">
+      <TabPanel v-if="isAdmin" value="modules">
         <div class="columns">
           <section>
             <ModuleTable />
@@ -42,8 +63,15 @@ onMounted(() => {
           </section>
         </div>
       </TabPanel>
-      <TabPanel value="users">
-        <UserManagement :current-username="props.user.username" />
+      <TabPanel v-if="isAdmin" value="users">
+        <UserManagement :current-username="user.username" />
+      </TabPanel>
+      <TabPanel
+        v-for="tab in uiTabs"
+        :key="tabValue(tab)"
+        :value="tabValue(tab)"
+      >
+        <ModuleUiTab :url="tab.url" />
       </TabPanel>
     </TabPanels>
     <ConfirmDialog />
@@ -68,7 +96,7 @@ onMounted(() => {
   padding: 0;
 }
 
-/* the top-level Modules / Users tabs read a touch larger than the nested log tabs */
+/* the top-level tabs read a touch larger than the nested log tabs */
 .topbar :deep(.p-tab) {
   font-size: 1.1rem;
 }

@@ -1,6 +1,7 @@
 import { ref } from "vue"
 import { useToast } from "primevue/usetoast"
 import { apiCall, type ApiResponse } from "./useApi"
+import { useModuleUis } from "./useModuleUis"
 
 export type ModuleStatusValue =
   | "RUNNING"
@@ -16,6 +17,12 @@ export interface ModuleDependency {
   version: string
 }
 
+export interface ModuleEndpoint {
+  label: string
+  method: string
+  path: string
+}
+
 export interface ModuleInfo {
   id: string
   version: string
@@ -24,6 +31,7 @@ export interface ModuleInfo {
   coreAccess: CoreAccessValue
   authorized: boolean
   dependsOn: ModuleDependency[]
+  endpoints: ModuleEndpoint[]
 }
 
 const modules = ref<ModuleInfo[]>([])
@@ -38,7 +46,8 @@ export function useModules() {
     }
   }
 
-  // Runs a mutating action, surfaces the server's message on failure, then refreshes the list.
+  // Runs a mutating action, surfaces the server's message on failure, then refreshes the module
+  // list and the visible UI tabs (starting/stopping a module adds/removes its tab).
   async function run(method: string, url: string): Promise<void> {
     const res = await apiCall(method, url)
     if (!res.ok) {
@@ -50,6 +59,7 @@ export function useModules() {
       })
     }
     await list()
+    await useModuleUis().refresh()
   }
 
   function install(id: string): Promise<void> {

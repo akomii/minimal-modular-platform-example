@@ -18,6 +18,7 @@ own OAuth client and roles in a shared Keycloak realm.
 - **User management** — an admin Users tab (backed by `/api/users` and `/api/roles`) lists platform users and grants/revokes their roles — `platform-admin` plus each installed module's client roles — through a checkbox matrix.
 - **Module communication** — a content-agnostic pub/sub event bus, mediated by core over HTTP+SSE: durable and replayable, behind a swappable `EventStore` (Postgres by default, selected with `events.backend`).
 - **Observability UI** — live streams (SSE) for HTTP requests, server logs, and per-container logs, shown in the management UI.
+- **Module UI integration** — modules can declare web pages (`ui`) that the SPA embeds as tabs, and HTTP endpoints (`endpoints`) listed read-only for discovery. UI tabs are role-gated per user: a user sees a running module's tab only if they hold one of its roles, so a non-admin signs in to just the module tab(s) they may use (admins also get the Modules and Users tabs).
 - **Error handling** — exceptions map to RFC 7807 `ProblemDetail` responses.
 
 ## Module provisioning & versioning
@@ -38,6 +39,8 @@ rights in it, not realm-create.
     - `users` (optional) — service accounts the module needs, created with a generated password (never in the manifest).
     - `grants` (optional) — client roles to assign to pre-existing platform users (matched by username, e.g. `admin`) at install; the user is never created or removed by the module.
 - **`dependsOn`** (optional) — prerequisite modules, a list of `{ id, version }`. Each `id` must be installed at a version satisfying the constraint (`>=`, `>`, `<=`, `<`, `=`; a bare version means `>=`, e.g. `>=1.0.0`) before this module installs — and a module can't be removed while an installed module still depends on it.
+- **`ui`** (optional) — web pages to embed as tabs, a list of `{ name, path }` (each `path` relative to the module's published port). A page's tab is shown to users holding one of the module's roles while the module is running, served by `GET /api/ui`.
+- **`endpoints`** (optional) — HTTP endpoints the module exposes, a list of `{ label, method, path }`, listed read-only in the Modules tab for discovery; core records them but does not call them.
 
 A manifest can pre-grant module roles to existing platform users via `idp.grants`; beyond that, the admin assigns roles to users from the Users tab.
 
@@ -99,14 +102,9 @@ Under the hood, events are appended to a `core.events` log through a single seri
 
 # Open gaps
 
-- **Module UI integration** — module UIs (e.g. Grafana) aren't embedded in the platform SPA with shared login; goal is to show them in tabs.
 - **Settings UI** — no UI to view backend configuration.
 - **Database viewer** — no module with a simple UI to browse databases.
 - ui for message bus (messages on different channels)
-
-ToDo Changes to Manifest
-
-- add ui / possible endpoints paths
 
 ToDo
 drawio diagram of current state

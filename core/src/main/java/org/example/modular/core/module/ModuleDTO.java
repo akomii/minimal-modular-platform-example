@@ -13,7 +13,8 @@ public record ModuleDTO(
     ModuleStatus status,
     CoreAccess coreAccess,
     boolean authorized,
-    List<ModuleDefinition.Dependency> dependsOn
+    List<ModuleDefinition.Dependency> dependsOn,
+    List<ModuleDefinition.Endpoint> endpoints
 ) {
 
   /**
@@ -28,7 +29,8 @@ public record ModuleDTO(
         status,
         coreAccess,
         authorized,
-        module.getDependsOn()
+        module.getDependsOn(),
+        module.getEndpoints()
     );
   }
 }

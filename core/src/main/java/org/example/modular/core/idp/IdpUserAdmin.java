@@ -14,6 +14,11 @@ public interface IdpUserAdmin {
   List<DirectoryUser> listUsers();
 
   /**
+   * The roles (realm and client) currently assigned to the given user.
+   */
+  List<RoleRef> rolesOf(String userId);
+
+  /**
    * Grants the role to the user; idempotent.
    */
   void grantRole(String userId, RoleRef role);

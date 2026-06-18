@@ -118,6 +118,17 @@ function confirmRemove(module: ModuleInfo, purge: boolean): void {
           <span v-else>–</span>
         </template>
       </Column>
+      <Column header="Endpoints">
+        <template #body="{ data }">
+          <template v-if="data.endpoints?.length">
+            <div v-for="ep in data.endpoints" :key="ep.label" class="endpoint">
+              <span class="ep-method">{{ ep.method }}</span> {{ ep.path }}
+              <span class="ep-label">{{ ep.label }}</span>
+            </div>
+          </template>
+          <span v-else>–</span>
+        </template>
+      </Column>
       <Column header="Actions">
         <template #body="{ data }">
           <div class="actions">
@@ -167,6 +178,19 @@ function confirmRemove(module: ModuleInfo, purge: boolean): void {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 0.5rem;
+}
+
+.endpoint {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.ep-method {
+  font-weight: 600;
+}
+
+.ep-label {
+  color: #888;
 }
 
 .actions {
