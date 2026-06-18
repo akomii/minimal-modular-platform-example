@@ -24,6 +24,10 @@
         "legend": {"displayMode": "table", "placement": "right", "values": ["value"]},
         "pieType": "pie",
         "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": true}
+      },
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "palette-classic"}},
+        "overrides": []
       }
     },
     {
@@ -36,10 +40,11 @@
         {
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT (floor(extract(year FROM birth_date) / 10) * 10)::int::text AS decade, count(*)::int AS patients FROM core.patients GROUP BY 1 ORDER BY 1"
+          "rawSql": "SELECT (floor(extract(year FROM birth_date) / 10) * 10)::int::text || 's' AS decade, count(*)::int AS patients FROM core.patients GROUP BY 1 ORDER BY 1"
         }
       ],
       "options": {
+        "xField": "decade",
         "legend": {"displayMode": "hidden"},
         "orientation": "auto",
         "showValue": "auto"
