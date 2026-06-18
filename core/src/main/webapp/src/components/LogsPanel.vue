@@ -24,9 +24,14 @@ const installed = computed(() =>
       <TabList>
         <Tab value="requests">Requests</Tab>
         <Tab value="server">Server</Tab>
-        <Tab v-for="module in installed" :key="module.id" :value="module.id">{{
-          module.id
-        }}</Tab>
+        <Tab v-for="module in installed" :key="module.id" :value="module.id">
+          {{ module.id }}
+          <span
+            class="status-dot"
+            :class="{ online: module.status === 'RUNNING' }"
+            :title="module.status === 'RUNNING' ? 'online' : 'offline'"
+          />
+        </Tab>
       </TabList>
       <TabPanels>
         <TabPanel value="requests">
@@ -56,5 +61,27 @@ const installed = computed(() =>
 <style scoped>
 .logs-panel {
   margin-top: 0;
+}
+
+/* breathing room between the log tabs and their content */
+.logs-panel :deep(.p-tabpanel) {
+  padding: 1rem 0 0;
+}
+
+/* run-state dot in each container tab: green = running, grey = stopped */
+.status-dot {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-left: 0.4rem;
+  border-radius: 50%;
+  background: #9ca3af;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+
+.status-dot.online {
+  background: #22c55e;
 }
 </style>

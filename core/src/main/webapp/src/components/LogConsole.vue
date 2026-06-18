@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from "vue"
-import Tag from "primevue/tag"
 import { useSse } from "../composables/useSse"
 
 // Text log console for the Server tab and per-container tabs. Streams only while `active` (the
 // selected tab), so just one SSE connection is open at a time.
 const props = defineProps<{ url: string; active: boolean }>()
 
-const { lines, connected, open, close } = useSse()
+const { lines, open, close } = useSse()
 const output = ref<HTMLElement | null>(null)
 
 watch(
@@ -36,21 +35,11 @@ watch(
 
 <template>
   <div>
-    <div class="log-status">
-      <Tag
-        :value="connected ? 'live' : 'closed'"
-        :severity="connected ? 'success' : 'secondary'"
-      />
-    </div>
     <pre ref="output" class="log-output">{{ lines.join("\n") }}</pre>
   </div>
 </template>
 
 <style scoped>
-.log-status {
-  margin-bottom: 0.5rem;
-}
-
 .log-output {
   height: 48rem;
   margin: 0;

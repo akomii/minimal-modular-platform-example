@@ -8,7 +8,7 @@ import { statusSeverity } from "../composables/useApi"
 // color-coded status tag. Streams only while `active`.
 const props = defineProps<{ active: boolean }>()
 
-const { lines, connected, open, close } = useSse()
+const { lines, open, close } = useSse()
 
 // number of most recent requests shown
 const LIMIT = 100
@@ -52,12 +52,6 @@ function formatTime(iso: string): string {
 
 <template>
   <div>
-    <div class="log-status">
-      <Tag
-        :value="connected ? 'live' : 'closed'"
-        :severity="connected ? 'success' : 'secondary'"
-      />
-    </div>
     <div class="req-list">
       <div v-for="(entry, index) in entries" :key="index" class="req-row">
         <Tag
@@ -74,10 +68,6 @@ function formatTime(iso: string): string {
 </template>
 
 <style scoped>
-.log-status {
-  margin-bottom: 0.5rem;
-}
-
 .req-list {
   height: 24rem;
   overflow: auto;

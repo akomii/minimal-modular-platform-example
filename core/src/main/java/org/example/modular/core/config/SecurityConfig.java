@@ -1,5 +1,6 @@
 package org.example.modular.core.config;
 
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -82,6 +83,8 @@ public class SecurityConfig {
   @Order(2)
   SecurityFilterChain bffFilterChain(HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository) throws Exception {
     http.authorizeHttpRequests(auth -> {
+          // SSE streams are async requests; the initial dispatch is already authorized, so don't re-authorize the ASYNC/ERROR re-dispatch — otherwise an in-flight stream 403s once the session ends on logout
+          auth.dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll();
           auth.requestMatchers("/", "/index.html", "/favicon.ico", "/assets/**", "/error").permitAll();
           apiAuthorizationRules(auth);
           auth.anyRequest().authenticated();
