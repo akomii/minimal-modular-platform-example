@@ -17,6 +17,10 @@ services:
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      # Pin the issuer to a single hostname so tokens always carry iss=localhost:8081, regardless of
+      # whether the caller reached Keycloak via localhost (browser/core on the host) or
+      # host.docker.internal (module containers). Otherwise in-container modules get tokens core rejects.
+      KC_HOSTNAME: http://localhost:8081
     ports:
       - "8081:8080"
     volumes:
