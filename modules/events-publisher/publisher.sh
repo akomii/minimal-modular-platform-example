@@ -33,13 +33,18 @@ else
       done &
 
   # Let the subscription attach, then publish a few events; each call returns its assigned seq.
+  echo "[events-publisher] subscriber launched; sleeping 2s, then publishing to ${CORE}/api/events/${TOPIC}"
   sleep 2
   n=1
   while [ "${n}" -le 3 ]; do
-    result=$(curl -s -X POST "${CORE}/api/events/${TOPIC}" \
+    # -sS surfaces transport errors, --connect-timeout/--max-time turn a silent hang into a bounded,
+    # visible failure, -w reports the HTTP status and timing, and 2>&1 folds any error into the log.
+    result=$(curl -sS --connect-timeout 5 --max-time 10 \
+      -w ' (HTTP %{http_code} in %{time_total}s)' \
+      -X POST "${CORE}/api/events/${TOPIC}" \
       -H "Authorization: Bearer ${TOKEN}" \
       -H "Content-Type: application/json" \
-      -d "{\"from\":\"events-publisher\",\"n\":${n}}")
+      -d "{\"from\":\"events-publisher\",\"n\":${n}}" 2>&1)
     echo "[events-publisher] -> published #${n} ${result}"
     n=$((n + 1))
     sleep 1
