@@ -132,7 +132,9 @@ public class SecurityConfig {
         // user/role administration is admin-only
         .requestMatchers("/api/users/**", "/api/roles").hasRole(PLATFORM_ADMIN)
         // observability streams (request log, server log) are admin-only too
-        .requestMatchers("/api/requests/**", "/api/server/**").hasRole(PLATFORM_ADMIN);
+        .requestMatchers("/api/requests/**", "/api/server/**").hasRole(PLATFORM_ADMIN)
+        // demo-only database viewer exposes raw table contents — admin-only
+        .requestMatchers("/api/db/**").hasRole(PLATFORM_ADMIN);
   }
 
   /**

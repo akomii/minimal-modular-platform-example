@@ -1,5 +1,6 @@
 package org.example.modular.core.web;
 
+import org.example.modular.core.dbviewer.TableNotFoundException;
 import org.example.modular.core.dependency.ModuleDependencyException;
 import org.example.modular.core.module.ModuleNotFoundException;
 import org.example.modular.core.provisioning.ModuleNotAuthorizedException;
@@ -35,6 +36,11 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(ModuleNotFoundException.class)
   public ProblemDetail handleNotFound(ModuleNotFoundException ex) {
+    return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+  }
+
+  @ExceptionHandler(TableNotFoundException.class)
+  public ProblemDetail handleTableNotFound(TableNotFoundException ex) {
     return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
   }
 

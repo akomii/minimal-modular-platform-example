@@ -18,6 +18,7 @@ own OAuth client and roles in a shared Keycloak realm.
 - **User management** — an admin Users tab (backed by `/api/users` and `/api/roles`) lists platform users and grants/revokes their roles — `platform-admin` plus each installed module's client roles — through a checkbox matrix.
 - **Module communication** — a content-agnostic pub/sub event bus, mediated by core over HTTP+SSE: durable and replayable, behind a swappable `EventStore` (Postgres by default, selected with `events.backend`).
 - **Observability UI** — live streams (SSE) for HTTP requests, server logs, and per-container logs, shown in the management UI.
+- **Database viewer (demo)** — an admin-only, read-only tab that browses every non-system schema and table and pages through row data, for debugging and demonstration only. Disable with `dbviewer.enabled=false`.
 - **Module UI integration** — modules can declare web pages (`ui`) that the SPA embeds as tabs, and HTTP endpoints (`endpoints`) listed read-only for discovery. UI tabs are role-gated per user: a user sees a running module's tab only if they hold one of its roles, so a non-admin signs in to just the module tab(s) they may use (admins also get the Modules and Users tabs).
 - **Error handling** — exceptions map to RFC 7807 `ProblemDetail` responses.
 
@@ -103,7 +104,6 @@ Under the hood, events are appended to a `core.events` log through a single seri
 # Open gaps
 
 - **Settings UI** — no UI to view backend configuration.
-- **Database viewer** — no module with a simple UI to browse databases.
 - ui for message bus (messages on different channels)
 
 ToDo

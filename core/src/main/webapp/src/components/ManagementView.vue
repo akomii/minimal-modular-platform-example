@@ -10,6 +10,7 @@ import TabPanel from "primevue/tabpanel"
 import ModuleTable from "./ModuleTable.vue"
 import LogsPanel from "./LogsPanel.vue"
 import UserManagement from "./UserManagement.vue"
+import DatabaseView from "./DatabaseView.vue"
 import ModuleUiTab from "./ModuleUiTab.vue"
 import UserBar from "./UserBar.vue"
 import type { ModuleUi, UserInfo } from "../auth"
@@ -46,6 +47,7 @@ onMounted(() => {
       <TabList>
         <Tab v-if="isAdmin" value="modules">Modules</Tab>
         <Tab v-if="isAdmin" value="users">Users</Tab>
+        <Tab v-if="isAdmin" value="database">Database</Tab>
         <Tab v-for="tab in uiTabs" :key="tabValue(tab)" :value="tabValue(tab)">{{
           tab.label
         }}</Tab>
@@ -65,6 +67,9 @@ onMounted(() => {
       </TabPanel>
       <TabPanel v-if="isAdmin" value="users">
         <UserManagement :current-username="user.username" />
+      </TabPanel>
+      <TabPanel v-if="isAdmin" value="database">
+        <DatabaseView />
       </TabPanel>
       <TabPanel
         v-for="tab in uiTabs"
