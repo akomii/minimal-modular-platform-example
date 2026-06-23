@@ -1,5 +1,5 @@
 {
-  "id": "events-demo",
+  "id": "events-publisher",
   "version": "1.0.0",
   "image": "nginx:alpine",
   "idp": {},
@@ -8,8 +8,8 @@
   ],
   "mounts": [
     {
-      "source": "events-demo/demo.sh",
-      "target": "/docker-entrypoint.d/40-events-demo.sh"
+      "source": "events-publisher/publisher.sh",
+      "target": "/docker-entrypoint.d/40-events-publisher.sh"
     }
   ]
 }

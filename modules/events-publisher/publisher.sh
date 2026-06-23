@@ -1,5 +1,5 @@
 #!/bin/sh
-# events-demo — exercises the platform event bus end-to-end as a real module identity.
+# events-publisher — exercises the platform event bus end-to-end as a real module identity.
 #
 # Runs once at container start via the nginx /docker-entrypoint.d hook; nginx then stays up so the
 # background subscriber keeps streaming received events into this container's logs (watch them live
@@ -12,7 +12,7 @@ TOPIC="demo.ping"
 # nginx:alpine ships without curl
 apk add --no-cache curl >/dev/null 2>&1
 
-echo "[events-demo] requesting a client-credentials token as ${MODULE_OIDC_CLIENT_ID}"
+echo "[events-publisher] requesting a client-credentials token as ${MODULE_OIDC_CLIENT_ID}"
 TOKEN=$(curl -s -X POST "${KEYCLOAK}/protocol/openid-connect/token" \
   -d grant_type=client_credentials \
   -d "client_id=${MODULE_OIDC_CLIENT_ID}" \
@@ -20,16 +20,16 @@ TOKEN=$(curl -s -X POST "${KEYCLOAK}/protocol/openid-connect/token" \
   | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
 
 if [ -z "${TOKEN}" ]; then
-  echo "[events-demo] could not obtain a token — check that Keycloak is reachable and its issuer"
-  echo "[events-demo] matches core's (see this module's README.md); skipping the demo"
+  echo "[events-publisher] could not obtain a token — check that Keycloak is reachable and its issuer"
+  echo "[events-publisher] matches core's (see this module's README.md); skipping the demo"
 else
-  echo "[events-demo] subscribing to '${TOPIC}' (replaying from the start), then publishing 3 events"
+  echo "[events-publisher] subscribing to '${TOPIC}' (replaying from the start), then publishing 3 events"
 
   # Subscribe in the background and echo every SSE line into this container's log.
   curl -sN -H "Authorization: Bearer ${TOKEN}" \
     "${CORE}/api/events/${TOPIC}/stream?since=0" \
     | while IFS= read -r line; do
-        [ -n "${line}" ] && echo "[events-demo] <- ${line}"
+        [ -n "${line}" ] && echo "[events-publisher] <- ${line}"
       done &
 
   # Let the subscription attach, then publish a few events; each call returns its assigned seq.
@@ -39,11 +39,11 @@ else
     result=$(curl -s -X POST "${CORE}/api/events/${TOPIC}" \
       -H "Authorization: Bearer ${TOKEN}" \
       -H "Content-Type: application/json" \
-      -d "{\"from\":\"events-demo\",\"n\":${n}}")
-    echo "[events-demo] -> published #${n} ${result}"
+      -d "{\"from\":\"events-publisher\",\"n\":${n}}")
+    echo "[events-publisher] -> published #${n} ${result}"
     n=$((n + 1))
     sleep 1
   done
 
-  echo "[events-demo] done publishing; the subscriber stays live — watch this module's logs."
+  echo "[events-publisher] done publishing; the subscriber stays live — watch this module's logs."
 fi
