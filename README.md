@@ -1,4 +1,4 @@
-# minimal-modular-platform-example
+# minimal-modular-platform-example ![Java 21](https://img.shields.io/badge/Java-21-orange) ![Spring Boot 3.5](https://img.shields.io/badge/Spring%20Boot-3.5-6DB33F) ![Vue 3](https://img.shields.io/badge/Vue-3-42b883)
 
 A Spring Boot 3.5 (Java 21) core serves a Vue 3 + PrimeVue SPA and runs modules as Docker containers. Four moving parts:
 
@@ -8,26 +8,48 @@ A Spring Boot 3.5 (Java 21) core serves a Vue 3 + PrimeVue SPA and runs modules 
 - **Keycloak realm** — a single shared `modular` realm that holds every identity.
 - **Postgres** — one core database that core and modules share.
 
+## Getting started
+
+Everything below is the local development path — the `dev/` compose files are throwaway helpers, not a production deployment.
+
+### Prerequisites
+
+- **JDK 21** — to build and run core.
+- **Apache Maven** — the build tool. The Vue SPA builds automatically: the Maven build downloads its own Node (`v20.11.1`) and runs `npm install` + `npm run build`, so no manual Node/npm setup is
+  needed.
+- **Docker** — runs the module containers, and the dev Postgres + Keycloak below. Core talks to the daemon at `/var/run/docker.sock`.
+
+### Run it locally
+
+Core performs OIDC discovery and connects to the database at startup, so bring Postgres (`5432`) and Keycloak (`8081`) up first:
+
+1. **Start Postgres** — `docker compose -f dev/db/compose.yaml up -d` (database `dwh`, user/password `dwh`/`dwh`).
+2. **Start Keycloak** — `docker compose -f dev/keycloak/compose.yaml up -d`, *before* core: core runs OIDC discovery against the issuer at boot and won't start if Keycloak is unreachable. The shared
+   `modular` realm is pre-imported with the `core` client and two demo users.
+3. **Build** — from `core/`, run `mvn clean package`. This compiles core, bundles the built SPA into the jar, and repackages an executable jar at `core/target/core-1.0-SNAPSHOT.jar`.
+4. **Run** — `java -jar core/target/core-1.0-SNAPSHOT.jar`. Core serves on `http://localhost:8080`.
+5. **Sign in** — open `http://localhost:8080` and log in as `admin` / `admin` (full `platform-admin` access) or `guest` / `guest` (no roles — the non-admin view).
+
 ## Capabilities
 
-| Capability | What it does |
-| --- | --- |
-| **Module lifecycle** | Install, authorize, upgrade, start, stop, and purge modules from JSON manifests in `modules/`. Operations are idempotent. |
-| **Runtime selection** | Modules run behind a `ModuleRuntime` interface; the Docker runtime is selected with `modules.runtime` (default `docker`). |
-| **Database provisioning** | Each module gets a `mod_<id>` DB role and, optionally, its own schema, with `none`/`read`/`write` access to the core schema. Core schema and seed data are managed by Flyway. |
-| **Audit & undo** | A module's changes to the core schema and data are recorded in an append-only log and replayed in reverse on purge, leaving core untouched. |
-| **Authentication** | Keycloak OIDC with two security chains: session-based login for the SPA, bearer JWT for API clients. Realm roles map to Spring roles, and only `platform-admin` users can reach the management API. |
-| **Module identity** | Each module gets its own OAuth client, client roles, and service accounts in the shared realm, reconciled additively on upgrade. |
-| **User management** | An admin Users tab (backed by `/api/users` and `/api/roles`) lists platform users and grants/revokes their roles — `platform-admin` plus each installed module's client roles — through a checkbox matrix. |
-| **Module communication** | A content-agnostic pub/sub event bus, mediated by core over HTTP+SSE: durable and replayable, behind a swappable `EventStore` (Postgres by default, selected with `events.backend`). |
-| **Observability UI** | Live streams (SSE) for HTTP requests, server logs, and per-container logs, shown in the management UI. |
-| **Database viewer (demo)** | An admin-only, read-only tab that browses every non-system schema and table and pages through row data, for debugging and demonstration only. Disable with `dbviewer.enabled=false`. |
-| **Module UI integration** | Modules can declare web pages (`ui`) that the SPA embeds as tabs, and HTTP endpoints (`endpoints`) listed read-only for discovery. UI tabs are role-gated per user: a user sees a running module's tab only if they hold one of its roles, so a non-admin signs in to just the module tab(s) they may use (admins also get the Modules and Users tabs). |
-| **Error handling** | Exceptions map to RFC 7807 `ProblemDetail` responses. |
+| Capability                 | What it does                                                                                                                                                                                                                                                                                                                                            |
+|----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Module lifecycle**       | Install, authorize, upgrade, start, stop, and purge modules from JSON manifests in `modules/`. Operations are idempotent.                                                                                                                                                                                                                               |
+| **Runtime selection**      | Modules run behind a `ModuleRuntime` interface; the Docker runtime is selected with `modules.runtime` (default `docker`).                                                                                                                                                                                                                               |
+| **Database provisioning**  | Each module gets a `mod_<id>` DB role and, optionally, its own schema, with `none`/`read`/`write` access to the core schema. Core schema and seed data are managed by Flyway.                                                                                                                                                                           |
+| **Audit & undo**           | A module's changes to the core schema and data are recorded in an append-only log and replayed in reverse on purge, leaving core untouched.                                                                                                                                                                                                             |
+| **Authentication**         | Keycloak OIDC with two security chains: session-based login for the SPA, bearer JWT for API clients. Realm roles map to Spring roles, and only `platform-admin` users can reach the management API.                                                                                                                                                     |
+| **Module identity**        | Each module gets its own OAuth client, client roles, and service accounts in the shared realm, reconciled additively on upgrade.                                                                                                                                                                                                                        |
+| **User management**        | An admin Users tab (backed by `/api/users` and `/api/roles`) lists platform users and grants/revokes their roles — `platform-admin` plus each installed module's client roles — through a checkbox matrix.                                                                                                                                              |
+| **Module communication**   | A content-agnostic pub/sub event bus, mediated by core over HTTP+SSE: durable and replayable, behind a swappable `EventStore` (Postgres by default, selected with `events.backend`).                                                                                                                                                                    |
+| **Observability UI**       | Live streams (SSE) for HTTP requests, server logs, and per-container logs, shown in the management UI.                                                                                                                                                                                                                                                  |
+| **Database viewer (demo)** | An admin-only, read-only tab that browses every non-system schema and table and pages through row data, for debugging and demonstration only. Disable with `dbviewer.enabled=false`.                                                                                                                                                                    |
+| **Module UI integration**  | Modules can declare web pages (`ui`) that the SPA embeds as tabs, and HTTP endpoints (`endpoints`) listed read-only for discovery. UI tabs are role-gated per user: a user sees a running module's tab only if they hold one of its roles, so a non-admin signs in to just the module tab(s) they may use (admins also get the Modules and Users tabs). |
+| **Error handling**         | Exceptions map to RFC 7807 `ProblemDetail` responses.                                                                                                                                                                                                                                                                                                   |
 
 ## The module manifest
 
-A module is identified by its manifest `id`, which also names its DB schema, DB role, OAuth client, and container. Everything the platform provisions is declared in that one JSON file under `modules/`;
+A module is identified by its manifest `id`, which also names its DB schema, DB role, OAuth client, and container. Everything the platform provisions is declared in that one JSON file under`modules/`;
 all identity lives in a shared `modular` Keycloak realm, so core needs realm-management rights in it, not realm-create.
 
 A real example — the `weather` module (`modules/weather/manifest.json`):
@@ -43,7 +65,9 @@ A real example — the `weather` module (`modules/weather/manifest.json`):
   "db": {
     "ownSchema": true,
     "coreAccess": "write",
-    "migrations": ["weather/up.sql"]
+    "migrations": [
+      "weather/up.sql"
+    ]
   }
 }
 ```
