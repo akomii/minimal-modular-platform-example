@@ -137,12 +137,15 @@ public class DockerJavaRuntime implements ModuleRuntime {
         .withBinds(binds(module))
         // lets containers reach services on the docker host (e.g. postgres, the identity provider)
         .withExtraHosts("host.docker.internal:host-gateway");
-    CreateContainerResponse response = dockerClient.createContainerCmd(module.getImage())
+    var createCmd = dockerClient.createContainerCmd(module.getImage())
         .withName(module.getId())
         .withExposedPorts(List.copyOf(portBindings.getBindings().keySet()))
         .withEnv(env(module, extraEnv))
-        .withHostConfig(hostConfig)
-        .exec();
+        .withHostConfig(hostConfig);
+    if (!module.getCommand().isEmpty()) {
+      createCmd.withCmd(module.getCommand());
+    }
+    CreateContainerResponse response = createCmd.exec();
     if (response.getId() == null || response.getId().isBlank()) {
       log.error("Container creation returned empty ID for module {}", module.getId());
       throw new IllegalStateException("Container creation failed for module: " + module.getId());

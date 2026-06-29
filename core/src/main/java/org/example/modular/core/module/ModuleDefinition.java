@@ -16,6 +16,10 @@ public class ModuleDefinition {
   private String id;
   private String version;
   private String image;
+  /**
+   * Overrides the image's default command when non-empty; lets a module run a one-shot script that exits (the container then stops itself).
+   */
+  private List<String> command = new ArrayList<>();
   private List<String> ports = new ArrayList<>();
   private Map<String, String> env = new LinkedHashMap<>();
   private List<Mount> mounts = new ArrayList<>();
