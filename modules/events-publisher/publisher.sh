@@ -8,6 +8,9 @@
 CORE="http://host.docker.internal:8080"
 KEYCLOAK="http://host.docker.internal:8081/realms/modular"
 TOPIC="demo.ping"
+# how many events to publish — configurable at runtime via the manifest's "config" block (the COUNT
+# env var core injects); defaults to 3 when unset.
+COUNT="${COUNT:-3}"
 
 # nginx:alpine ships without curl
 apk add --no-cache curl >/dev/null 2>&1
@@ -23,7 +26,7 @@ if [ -z "${TOKEN}" ]; then
   echo "[events-publisher] could not obtain a token — check that Keycloak is reachable and its issuer"
   echo "[events-publisher] matches core's (see this module's README.md); skipping the demo"
 else
-  echo "[events-publisher] subscribing to '${TOPIC}' (replaying from the start), then publishing 3 events"
+  echo "[events-publisher] subscribing to '${TOPIC}' (replaying from the start), then publishing ${COUNT} events"
 
   # Subscribe in the background and echo every SSE line into this container's log.
   curl -sN -H "Authorization: Bearer ${TOKEN}" \
@@ -36,7 +39,7 @@ else
   echo "[events-publisher] subscriber launched; sleeping 2s, then publishing to ${CORE}/api/events/${TOPIC}"
   sleep 2
   n=1
-  while [ "${n}" -le 3 ]; do
+  while [ "${n}" -le "${COUNT}" ]; do
     # -sS surfaces transport errors, --connect-timeout/--max-time turn a silent hang into a bounded,
     # visible failure, -w reports the HTTP status and timing, and 2>&1 folds any error into the log.
     result=$(curl -sS --connect-timeout 5 --max-time 10 \

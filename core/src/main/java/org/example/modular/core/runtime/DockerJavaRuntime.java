@@ -205,6 +205,24 @@ public class DockerJavaRuntime implements ModuleRuntime {
   }
 
   @Override
+  public void reconfigure(ModuleDefinition module, Map<String, String> extraEnv) {
+    log.info("Reconfiguring module {}", module.getId());
+    ModuleStatus currentStatus = status(module);
+    if (currentStatus == ModuleStatus.NOT_CREATED) {
+      log.warn("Cannot reconfigure {}: not installed", module.getId());
+      throw new InvalidModuleStateException("Module is not installed: " + module.getId());
+    }
+    if (currentStatus == ModuleStatus.RUNNING) {
+      // a container must be stopped before it can be removed
+      dockerClient.stopContainerCmd(module.getId()).exec();
+    }
+    dockerClient.removeContainerCmd(module.getId()).exec();
+    // image is already local from install, so recreate without pulling
+    createContainer(module, extraEnv);
+    log.info("Successfully reconfigured module {}", module.getId());
+  }
+
+  @Override
   public void start(ModuleDefinition module) {
     log.info("Starting module {}", module.getId());
     ModuleStatus currentStatus = status(module);

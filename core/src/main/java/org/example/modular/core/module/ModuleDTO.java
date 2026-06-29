@@ -14,11 +14,13 @@ public record ModuleDTO(
     CoreAccess coreAccess,
     boolean authorized,
     List<ModuleDefinition.Dependency> dependsOn,
-    List<ModuleDefinition.Endpoint> endpoints
+    List<ModuleDefinition.Endpoint> endpoints,
+    boolean configurable
 ) {
 
   /**
-   * Builds a DTO from a module definition plus its current runtime status and authorization flag, defaulting core access to none when the module declares no database.
+   * Builds a DTO from a module definition plus its current runtime status and authorization flag, defaulting core access to none when the module declares no database and marking it configurable when
+   * it declares any config fields.
    */
   public static ModuleDTO from(ModuleDefinition module, ModuleStatus status, boolean authorized) {
     CoreAccess coreAccess = module.getDb() != null ? module.getDb().getCoreAccess() : CoreAccess.NONE;
@@ -30,7 +32,8 @@ public record ModuleDTO(
         coreAccess,
         authorized,
         module.getDependsOn(),
-        module.getEndpoints()
+        module.getEndpoints(),
+        !module.getConfig().isEmpty()
     );
   }
 }

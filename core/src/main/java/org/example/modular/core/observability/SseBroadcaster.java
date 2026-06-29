@@ -4,6 +4,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.function.IntSupplier;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
@@ -11,21 +12,25 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  */
 public class SseBroadcaster {
 
-  private final int capacity;
+  private final IntSupplier capacity;
   private final Deque<Object> buffer = new ArrayDeque<>();
   private final Set<SseEmitter> emitters = new CopyOnWriteArraySet<>();
 
-  public SseBroadcaster(int capacity) {
+  /**
+   * The capacity is read on each publish so a live config change re-bounds the backlog without recreating the broadcaster.
+   */
+  public SseBroadcaster(IntSupplier capacity) {
     this.capacity = capacity;
   }
 
   /**
-   * Appends an item to the bounded backlog (evicting the oldest past capacity) and sends it to every subscriber, dropping any whose send fails.
+   * Appends an item to the bounded backlog (evicting the oldest past the current capacity) and sends it to every subscriber, dropping any whose send fails.
    */
   public void publish(Object item) {
+    int max = capacity.getAsInt();
     synchronized (buffer) {
       buffer.addLast(item);
-      while (buffer.size() > capacity) {
+      while (buffer.size() > max) {
         buffer.removeFirst();
       }
     }

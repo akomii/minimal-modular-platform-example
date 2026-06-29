@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
@@ -68,8 +69,7 @@ public class SecurityConfig {
           apiAuthorizationRules(auth);
           auth.anyRequest().authenticated();
         }).sessionManagement(session ->
-            session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)).csrf(csrf ->
-            csrf.disable())
+            session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)).csrf(AbstractHttpConfigurer::disable)
         .oauth2ResourceServer(oauth2 ->
             oauth2.jwt(jwt ->
                 jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
@@ -129,6 +129,8 @@ public class SecurityConfig {
         .requestMatchers("/api/events/**").authenticated()
         // the platform endpoints additionally require the platform-admin role
         .requestMatchers("/api/modules/**").hasRole(PLATFORM_ADMIN)
+        // core live-config settings are admin-only (module config lives under /api/modules/**)
+        .requestMatchers("/api/config/**").hasRole(PLATFORM_ADMIN)
         // user/role administration is admin-only
         .requestMatchers("/api/users/**", "/api/roles").hasRole(PLATFORM_ADMIN)
         // observability streams (request log, server log) are admin-only too

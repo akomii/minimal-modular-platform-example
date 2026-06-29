@@ -1,6 +1,6 @@
 package org.example.modular.core.observability;
 
-import org.springframework.beans.factory.annotation.Value;
+import org.example.modular.core.configuration.core.CoreConfigService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -12,8 +12,8 @@ public class ServerLogStore {
 
   private final SseBroadcaster broadcaster;
 
-  public ServerLogStore(@Value("${observability.server-log-capacity}") int capacity) {
-    this.broadcaster = new SseBroadcaster(capacity);
+  public ServerLogStore(CoreConfigService config) {
+    this.broadcaster = new SseBroadcaster(() -> config.get(ObservabilitySettings.SERVER_LOG_CAPACITY));
   }
 
   /**

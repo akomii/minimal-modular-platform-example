@@ -11,5 +11,8 @@
       "source": "events-publisher/publisher.sh",
       "target": "/docker-entrypoint.d/40-events-publisher.sh"
     }
+  ],
+  "config": [
+    { "key": "COUNT", "label": "Events to publish", "type": "number", "default": "3" }
   ]
 }

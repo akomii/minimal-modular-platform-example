@@ -1,7 +1,7 @@
 package org.example.modular.core.observability;
 
 import java.time.Instant;
-import org.springframework.beans.factory.annotation.Value;
+import org.example.modular.core.configuration.core.CoreConfigService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -13,8 +13,8 @@ public class RequestLogStore {
 
   private final SseBroadcaster broadcaster;
 
-  public RequestLogStore(@Value("${observability.request-log-capacity}") int capacity) {
-    this.broadcaster = new SseBroadcaster(capacity);
+  public RequestLogStore(CoreConfigService config) {
+    this.broadcaster = new SseBroadcaster(() -> config.get(ObservabilitySettings.REQUEST_LOG_CAPACITY));
   }
 
   /**

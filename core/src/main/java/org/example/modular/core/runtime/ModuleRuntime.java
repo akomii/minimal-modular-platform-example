@@ -16,10 +16,16 @@ public interface ModuleRuntime {
   ModuleStatus status(ModuleDefinition module);
 
   /**
-   * Pulls the module's image and creates its container without starting it, layering {@code extraEnv} (platform-injected values such as generated secrets) over the manifest env; throws if the module is
-   * already installed.
+   * Pulls the module's image and creates its container without starting it, layering {@code extraEnv} (platform-injected values such as generated secrets) over the manifest env; throws if the module
+   * is already installed.
    */
   void install(ModuleDefinition module, Map<String, String> extraEnv);
+
+  /**
+   * Recreates the module's container with new {@code extraEnv} from the already-pulled image (no image pull), leaving it stopped; throws if the module is not installed. Used to apply changed
+   * configuration to an installed module.
+   */
+  void reconfigure(ModuleDefinition module, Map<String, String> extraEnv);
 
   /**
    * Starts the module's container; a no-op if it is already running, and throws if it is not installed.

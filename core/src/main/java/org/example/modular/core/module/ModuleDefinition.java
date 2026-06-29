@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.Data;
+import org.example.modular.core.configuration.setting.Setting;
 
 /**
  * Parsed module manifest: container image, ports, env and mounts plus optional database and identity (idp) provisioning sections, and prerequisite modules.
@@ -23,6 +24,7 @@ public class ModuleDefinition {
   private List<Dependency> dependsOn = new ArrayList<>();
   private List<UiPage> ui = new ArrayList<>();
   private List<Endpoint> endpoints = new ArrayList<>();
+  private List<Setting<?>> config = new ArrayList<>();
 
   /**
    * A read-only host-to-container file mount (manifest {@code source} path resolved against the modules directory, container {@code target} path).
