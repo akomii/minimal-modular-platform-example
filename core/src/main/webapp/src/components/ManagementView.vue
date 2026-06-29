@@ -11,10 +11,12 @@ import ModuleTable from "./ModuleTable.vue"
 import LogsPanel from "./LogsPanel.vue"
 import UserManagement from "./UserManagement.vue"
 import DatabaseView from "./DatabaseView.vue"
+import ConfigurationView from "./ConfigurationView.vue"
 import ModuleUiTab from "./ModuleUiTab.vue"
 import UserBar from "./UserBar.vue"
 import type { ModuleUi, UserInfo } from "../auth"
 import { useModules } from "../composables/useModules"
+import { useConfiguration } from "../composables/useConfiguration"
 
 const props = defineProps<{
   user: UserInfo
@@ -22,6 +24,12 @@ const props = defineProps<{
   isAdmin: boolean
 }>()
 const { list } = useModules()
+const { coreSettings, loadCore } = useConfiguration()
+
+// the Database tab follows its core setting, so toggling it on the Configuration tab adds/removes it live
+const dbViewerEnabled = computed(
+  () => coreSettings.value.find((s) => s.key === "dbviewer.enabled")?.value !== "false"
+)
 
 // each module UI page gets its own tab; this is its stable tab key
 function tabValue(tab: ModuleUi): string {
@@ -34,9 +42,10 @@ const activeTab = computed(() =>
 )
 
 onMounted(() => {
-  // only admins may call the module API
+  // only admins may call the module/config APIs
   if (props.isAdmin) {
     void list()
+    void loadCore()
   }
 })
 </script>
@@ -47,7 +56,8 @@ onMounted(() => {
       <TabList>
         <Tab v-if="isAdmin" value="modules">Modules</Tab>
         <Tab v-if="isAdmin" value="users">Users</Tab>
-        <Tab v-if="isAdmin" value="database">Database</Tab>
+        <Tab v-if="isAdmin && dbViewerEnabled" value="database">Database</Tab>
+        <Tab v-if="isAdmin" value="config">Configuration</Tab>
         <Tab v-for="tab in uiTabs" :key="tabValue(tab)" :value="tabValue(tab)">{{
           tab.label
         }}</Tab>
@@ -68,8 +78,11 @@ onMounted(() => {
       <TabPanel v-if="isAdmin" value="users">
         <UserManagement :current-username="user.username" />
       </TabPanel>
-      <TabPanel v-if="isAdmin" value="database">
+      <TabPanel v-if="isAdmin && dbViewerEnabled" value="database">
         <DatabaseView />
+      </TabPanel>
+      <TabPanel v-if="isAdmin" value="config">
+        <ConfigurationView />
       </TabPanel>
       <TabPanel
         v-for="tab in uiTabs"

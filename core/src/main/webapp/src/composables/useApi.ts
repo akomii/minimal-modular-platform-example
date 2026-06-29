@@ -31,27 +31,39 @@ function getCookie(name: string): string | null {
 
 // fetch wrapper that NEVER throws on 4xx/5xx — it captures status + body so callers can react to
 // the raw server response. Mutating requests echo the CSRF token (XSRF-TOKEN cookie ->
-// X-XSRF-TOKEN header) required by the backend's cookie-based CSRF protection.
+// X-XSRF-TOKEN header) required by the backend's cookie-based CSRF protection. An optional `body`:
+// a string is sent raw as text/plain, anything else as JSON.
 export async function apiCall(
   method: string,
-  url: string
+  url: string,
+  body?: unknown
 ): Promise<ApiResponse> {
   const headers: Record<string, string> = {}
   if (method !== "GET" && method !== "HEAD") {
     headers["X-XSRF-TOKEN"] = getCookie("XSRF-TOKEN") ?? ""
   }
+  const init: RequestInit = { method, headers }
+  if (body !== undefined) {
+    if (typeof body === "string") {
+      headers["Content-Type"] = "text/plain"
+      init.body = body
+    } else {
+      headers["Content-Type"] = "application/json"
+      init.body = JSON.stringify(body)
+    }
+  }
   let status = 0
   let ok = false
-  let body: unknown = null
+  let responseBody: unknown = null
   try {
-    const res = await fetch(url, { method, headers })
+    const res = await fetch(url, init)
     status = res.status
     ok = res.ok
-    body = parseBody(await res.text())
+    responseBody = parseBody(await res.text())
   } catch (e) {
-    body = e instanceof Error ? e.message : String(e)
+    responseBody = e instanceof Error ? e.message : String(e)
   }
-  return { method, url, status, ok, body }
+  return { method, url, status, ok, body: responseBody }
 }
 
 function parseBody(text: string): unknown {

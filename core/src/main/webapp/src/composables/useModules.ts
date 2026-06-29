@@ -32,6 +32,7 @@ export interface ModuleInfo {
   authorized: boolean
   dependsOn: ModuleDependency[]
   endpoints: ModuleEndpoint[]
+  configurable: boolean
 }
 
 const modules = ref<ModuleInfo[]>([])
