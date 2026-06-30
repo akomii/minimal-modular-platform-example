@@ -103,4 +103,11 @@ public class ModuleConfigService {
   public void purge(String moduleId) {
     repository.deleteAll(moduleId);
   }
+
+  /**
+   * Restores the module's config to its manifest defaults by dropping all stored overrides; does not redeploy, so the container keeps its current env until applied.
+   */
+  public void reset(String moduleId) {
+    repository.deleteAll(moduleId);
+  }
 }

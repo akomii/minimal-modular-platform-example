@@ -31,4 +31,8 @@ public class CoreConfigRepository {
         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
         """, key, value);
   }
+
+  public void deleteAll() {
+    jdbc.update("DELETE FROM core.config");
+  }
 }

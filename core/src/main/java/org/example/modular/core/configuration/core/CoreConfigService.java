@@ -79,6 +79,14 @@ public class CoreConfigService {
   }
 
   /**
+   * Restores every core setting to its declared default by dropping all stored overrides; takes effect immediately, like an update.
+   */
+  public void reset() {
+    repository.deleteAll();
+    values.clear();
+  }
+
+  /**
    * The setting's stored string value, falling back to its default if no row is stored.
    */
   private String current(Setting<?> setting) {

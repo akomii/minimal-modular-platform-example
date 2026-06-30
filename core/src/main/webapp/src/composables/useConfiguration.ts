@@ -41,6 +41,16 @@ export function useConfiguration() {
     })
   }
 
+  // Restoring drops the stored overrides; the server replies with the settings now showing their defaults.
+  async function resetCore(): Promise<void> {
+    const res = await apiCall("DELETE", "/api/config")
+    handle(res, "Settings restored to defaults", (body) => {
+      if (Array.isArray(body)) {
+        coreSettings.value = body as Setting[]
+      }
+    })
+  }
+
   function setModuleFields(id: string, fields: Setting[]): void {
     moduleConfigs.value = { ...moduleConfigs.value, [id]: fields }
   }
@@ -57,6 +67,16 @@ export function useConfiguration() {
   ): Promise<void> {
     const res = await apiCall("PUT", `/api/modules/${id}/config`, values)
     handle(res, "Configuration saved", (body) => {
+      if (Array.isArray(body)) {
+        setModuleFields(id, body as Setting[])
+      }
+    })
+  }
+
+  // Like saving, this only persists (here, by dropping overrides); the module keeps running until Apply.
+  async function resetModuleConfig(id: string): Promise<void> {
+    const res = await apiCall("DELETE", `/api/modules/${id}/config`)
+    handle(res, "Configuration restored to defaults", (body) => {
       if (Array.isArray(body)) {
         setModuleFields(id, body as Setting[])
       }
@@ -93,8 +113,10 @@ export function useConfiguration() {
     moduleConfigs,
     loadCore,
     saveCore,
+    resetCore,
     loadModuleConfig,
     saveModuleConfig,
+    resetModuleConfig,
     applyModuleConfig
   }
 }

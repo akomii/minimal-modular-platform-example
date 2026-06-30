@@ -15,8 +15,10 @@ const {
   moduleConfigs,
   loadCore,
   saveCore,
+  resetCore,
   loadModuleConfig,
   saveModuleConfig,
+  resetModuleConfig,
   applyModuleConfig
 } = useConfiguration()
 const { modules, list } = useModules()
@@ -85,6 +87,14 @@ function saveModule(id: string): void {
   void saveModuleConfig(id, values)
 }
 
+function resetCoreSettings(): void {
+  void resetCore()
+}
+
+function resetModule(id: string): void {
+  void resetModuleConfig(id)
+}
+
 function applyModule(id: string): void {
   void applyModuleConfig(id)
 }
@@ -118,6 +128,16 @@ onMounted(() => {
       </header>
       <Card>
         <template #content>
+          <div class="card-head">
+            <Button
+              label="Restore defaults"
+              icon="pi pi-replay"
+              text
+              severity="secondary"
+              size="small"
+              @click="resetCoreSettings"
+            />
+          </div>
           <div v-for="s in coreSettings" :key="s.key" class="field">
             <label :for="s.key">{{ s.label }}</label>
             <div class="control">
@@ -152,6 +172,16 @@ onMounted(() => {
         :legend="m.id"
         class="module"
       >
+        <div class="card-head">
+          <Button
+            label="Restore defaults"
+            icon="pi pi-replay"
+            text
+            severity="secondary"
+            size="small"
+            @click="resetModule(m.id)"
+          />
+        </div>
         <div
           v-for="f in moduleConfigs[m.id] ?? []"
           :key="f.key"
@@ -208,6 +238,13 @@ onMounted(() => {
 
 .module {
   margin-bottom: 1.25rem;
+}
+
+/* right-aligned header row holding the Restore defaults button, in the card's upper-right corner */
+.card-head {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
 }
 
 .field {

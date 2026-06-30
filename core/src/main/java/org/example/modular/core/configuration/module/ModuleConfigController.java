@@ -5,6 +5,7 @@ import java.util.Map;
 import org.example.modular.core.configuration.setting.SettingDTO;
 import org.example.modular.core.module.ModuleDTO;
 import org.example.modular.core.module.ModuleService;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -43,6 +44,15 @@ public class ModuleConfigController {
   @PutMapping
   public List<SettingDTO> update(@PathVariable String id, @RequestBody Map<String, String> values) {
     configService.update(id, values);
+    return configService.list(id);
+  }
+
+  /**
+   * Restores the module's config to its manifest defaults (persisted only; the module keeps running until Apply) and returns the refreshed list.
+   */
+  @DeleteMapping
+  public List<SettingDTO> reset(@PathVariable String id) {
+    configService.reset(id);
     return configService.list(id);
   }
 
