@@ -1,0 +1,18 @@
+{
+  "id": "events-publisher",
+  "version": "1.0.0",
+  "image": "nginx:alpine",
+  "idp": {},
+  "dependsOn": [
+    { "id": "weather", "version": ">=1.0.0" }
+  ],
+  "mounts": [
+    {
+      "source": "events-publisher/publisher.sh",
+      "target": "/docker-entrypoint.d/40-events-publisher.sh"
+    }
+  ],
+  "config": [
+    { "key": "COUNT", "label": "Events to publish", "type": "number", "default": "3" }
+  ]
+}

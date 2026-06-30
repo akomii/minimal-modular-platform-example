@@ -1,0 +1,13 @@
+{
+  "id": "weather",
+  "version": "1.0.0",
+  "image": "nginx:alpine",
+  "ports": [
+    "8082:80"
+  ],
+  "db": {
+    "ownSchema": true,
+    "coreAccess": "write",
+    "migrations": ["weather/up.sql"]
+  }
+}

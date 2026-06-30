@@ -1,0 +1,35 @@
+# Local development helper ONLY.
+# Spins up a throwaway Keycloak (the identity provider) for the core app and
+# pre-imports the 'modular' realm: a confidential 'core' client (with a
+# service account for module provisioning), a 'platform-admin' realm role,
+# and two demo users:
+#   - admin / admin  (has platform-admin -> full API access)
+#   - guest / guest  (no role -> 403 on /api/modules)
+# Dev-only secrets. Not used by tests, not a production deployment.
+#
+# Usage: docker compose -f dev/keycloak/compose.yaml up -d
+# Start this BEFORE the core app: core performs OIDC discovery against the
+# issuer-uri at startup and will fail to boot if Keycloak is not yet reachable.
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.1
+    command: [ "start-dev", "--import-realm" ]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      # Pin the issuer to a single hostname so tokens always carry iss=localhost:8081, regardless of
+      # whether the caller reached Keycloak via localhost (browser/core on the host) or
+      # host.docker.internal (module containers). Otherwise in-container modules get tokens core rejects.
+      KC_HOSTNAME: http://localhost:8081
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'exec 3<>/dev/tcp/127.0.0.1/8080 && printf "GET /realms/modular/.well-known/openid-configuration HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3 && grep -q issuer <&3'
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s

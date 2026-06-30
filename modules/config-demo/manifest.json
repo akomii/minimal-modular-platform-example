@@ -1,0 +1,18 @@
+{
+  "id": "config-demo",
+  "version": "1.0.0",
+  "image": "alpine:3",
+  "command": ["sh", "/print-config.sh"],
+  "mounts": [
+    {
+      "source": "config-demo/print-config.sh",
+      "target": "/print-config.sh"
+    }
+  ],
+  "config": [
+    { "key": "GREETING", "label": "Greeting text", "type": "string", "default": "Hello from config-demo" },
+    { "key": "REPEAT", "label": "Times to repeat the greeting", "type": "number", "default": "3" },
+    { "key": "VERBOSE", "label": "Verbose output", "type": "boolean", "default": "true" },
+    { "key": "API_TOKEN", "label": "API token", "type": "secret", "default": "demo-secret" }
+  ]
+}

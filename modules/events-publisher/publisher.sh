@@ -1,0 +1,57 @@
+#!/bin/sh
+# events-publisher — exercises the platform event bus end-to-end as a real module identity.
+#
+# Runs once at container start via the nginx /docker-entrypoint.d hook; nginx then stays up so the
+# background subscriber keeps streaming received events into this container's logs (watch them live
+# in the management UI). nginx is just a vehicle to run this script and keep the container alive.
+
+CORE="http://host.docker.internal:8080"
+KEYCLOAK="http://host.docker.internal:8081/realms/modular"
+TOPIC="demo.ping"
+# how many events to publish — configurable at runtime via the manifest's "config" block (the COUNT
+# env var core injects); defaults to 3 when unset.
+COUNT="${COUNT:-3}"
+
+# nginx:alpine ships without curl
+apk add --no-cache curl >/dev/null 2>&1
+
+echo "[events-publisher] requesting a client-credentials token as ${MODULE_OIDC_CLIENT_ID}"
+TOKEN=$(curl -s -X POST "${KEYCLOAK}/protocol/openid-connect/token" \
+  -d grant_type=client_credentials \
+  -d "client_id=${MODULE_OIDC_CLIENT_ID}" \
+  -d "client_secret=${MODULE_OIDC_CLIENT_SECRET}" \
+  | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
+
+if [ -z "${TOKEN}" ]; then
+  echo "[events-publisher] could not obtain a token — check that Keycloak is reachable and its issuer"
+  echo "[events-publisher] matches core's (see this module's README.md); skipping the demo"
+else
+  echo "[events-publisher] subscribing to '${TOPIC}' (replaying from the start), then publishing ${COUNT} events"
+
+  # Subscribe in the background and echo every SSE line into this container's log.
+  curl -sN -H "Authorization: Bearer ${TOKEN}" \
+    "${CORE}/api/events/${TOPIC}/stream?since=0" \
+    | while IFS= read -r line; do
+        [ -n "${line}" ] && echo "[events-publisher] <- ${line}"
+      done &
+
+  # Let the subscription attach, then publish a few events; each call returns its assigned seq.
+  echo "[events-publisher] subscriber launched; sleeping 2s, then publishing to ${CORE}/api/events/${TOPIC}"
+  sleep 2
+  n=1
+  while [ "${n}" -le "${COUNT}" ]; do
+    # -sS surfaces transport errors, --connect-timeout/--max-time turn a silent hang into a bounded,
+    # visible failure, -w reports the HTTP status and timing, and 2>&1 folds any error into the log.
+    result=$(curl -sS --connect-timeout 5 --max-time 10 \
+      -w ' (HTTP %{http_code} in %{time_total}s)' \
+      -X POST "${CORE}/api/events/${TOPIC}" \
+      -H "Authorization: Bearer ${TOKEN}" \
+      -H "Content-Type: application/json" \
+      -d "{\"from\":\"events-publisher\",\"n\":${n}}" 2>&1)
+    echo "[events-publisher] -> published #${n} ${result}"
+    n=$((n + 1))
+    sleep 1
+  done
+
+  echo "[events-publisher] done publishing; the subscriber stays live — watch this module's logs."
+fi

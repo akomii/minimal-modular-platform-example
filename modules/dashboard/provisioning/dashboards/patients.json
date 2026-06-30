@@ -1,0 +1,58 @@
+{
+  "uid": "patients-overview",
+  "title": "Patient Overview",
+  "tags": ["core"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "refresh": "",
+  "time": {"from": "now-6h", "to": "now"},
+  "panels": [
+    {
+      "id": 1,
+      "type": "piechart",
+      "title": "Patients by sex",
+      "gridPos": {"h": 12, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "postgres", "uid": "core-dwh"},
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT sex, count(*)::int AS patients FROM core.patients GROUP BY sex ORDER BY sex"
+        }
+      ],
+      "options": {
+        "legend": {"displayMode": "table", "placement": "right", "values": ["value"]},
+        "pieType": "pie",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": true}
+      },
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "palette-classic"}},
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "barchart",
+      "title": "Patients by birth decade",
+      "gridPos": {"h": 12, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "postgres", "uid": "core-dwh"},
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT (floor(extract(year FROM birth_date) / 10) * 10)::int::text || 's' AS decade, count(*)::int AS patients FROM core.patients GROUP BY 1 ORDER BY 1"
+        }
+      ],
+      "options": {
+        "xField": "decade",
+        "legend": {"displayMode": "hidden"},
+        "orientation": "auto",
+        "showValue": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "palette-classic"}},
+        "overrides": []
+      }
+    }
+  ]
+}

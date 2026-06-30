@@ -1,0 +1,15 @@
+{
+  "id": "events-collector",
+  "version": "1.0.0",
+  "image": "nginx:alpine",
+  "idp": {},
+  "dependsOn": [
+    { "id": "events-publisher", "version": ">=1.0.0" }
+  ],
+  "mounts": [
+    {
+      "source": "events-collector/collector.sh",
+      "target": "/docker-entrypoint.d/40-events-collector.sh"
+    }
+  ]
+}
