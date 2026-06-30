@@ -1,6 +1,6 @@
 import { ref } from "vue"
-import { useToast } from "primevue/usetoast"
-import { apiCall, type ApiResponse } from "./useApi"
+import { apiCall } from "./useApi"
+import { useApiToast } from "./useApiToast"
 
 export interface DbSchema {
   name: string
@@ -18,7 +18,7 @@ export interface DbTableData {
 }
 
 export function useDatabase() {
-  const toast = useToast()
+  const { failToast } = useApiToast()
   const schemas = ref<DbSchema[]>([])
   const current = ref<DbTableData | null>(null)
 
@@ -27,7 +27,7 @@ export function useDatabase() {
     if (res.ok && Array.isArray(res.body)) {
       schemas.value = res.body as DbSchema[]
     } else {
-      fail(res)
+      failToast("Database viewer", res)
     }
   }
 
@@ -44,26 +44,9 @@ export function useDatabase() {
     if (res.ok && res.body && typeof res.body === "object") {
       current.value = res.body as DbTableData
     } else {
-      fail(res)
+      failToast("Database viewer", res)
     }
   }
 
-  function fail(res: ApiResponse): void {
-    toast.add({
-      severity: "error",
-      summary: "Database viewer",
-      detail: errorDetail(res),
-      life: 6000
-    })
-  }
-
   return { schemas, current, loadSchemas, loadTable }
-}
-
-// Pulls the RFC 7807 `detail` from a ProblemDetail body, falling back to the status code.
-function errorDetail(res: ApiResponse): string {
-  if (res.body && typeof res.body === "object" && "detail" in res.body) {
-    return String((res.body as Record<string, unknown>).detail)
-  }
-  return `Request failed (${res.status})`
 }

@@ -19,9 +19,10 @@ import org.springframework.web.client.RestClient;
 @ConditionalOnProperty(name = "idp.provider", havingValue = "keycloak", matchIfMissing = true)
 public class KeycloakAdminClient {
 
-  private static final ParameterizedTypeReference<List<Map<String, Object>>> LIST_OF_MAPS = new ParameterizedTypeReference<>() {
+  // shared by the Keycloak IdP implementations in this package to read the admin API's JSON object / array responses
+  static final ParameterizedTypeReference<List<Map<String, Object>>> LIST_OF_MAPS = new ParameterizedTypeReference<>() {
   };
-  private static final ParameterizedTypeReference<Map<String, Object>> MAP = new ParameterizedTypeReference<>() {
+  static final ParameterizedTypeReference<Map<String, Object>> MAP = new ParameterizedTypeReference<>() {
   };
 
   private final RestClient rest = RestClient.create();

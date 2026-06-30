@@ -1,9 +1,8 @@
 package org.example.modular.core.user;
 
 import java.util.List;
+import org.example.modular.core.config.AuthenticationPrincipals;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.core.oidc.user.OidcUser;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,15 +40,7 @@ public class UserAdminController {
 
   @DeleteMapping("/users/{userId}/roles/{roleId}")
   public void revoke(@PathVariable String userId, @PathVariable String roleId, Authentication authentication) {
-    service.revoke(userId, roleId, currentUserId(authentication));
-  }
-
-  // The Keycloak user id is the token's subject — used to block self-revocation of platform-admin.
-  private static String currentUserId(Authentication authentication) {
-    return switch (authentication.getPrincipal()) {
-      case OidcUser oidc -> oidc.getSubject();
-      case Jwt jwt -> jwt.getSubject();
-      default -> authentication.getName();
-    };
+    // pass the caller's id so the service can block self-revocation of platform-admin
+    service.revoke(userId, roleId, AuthenticationPrincipals.userId(authentication));
   }
 }

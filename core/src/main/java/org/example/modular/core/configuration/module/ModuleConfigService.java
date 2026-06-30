@@ -61,8 +61,7 @@ public class ModuleConfigService {
     ModuleDefinition module = catalog.byId(moduleId);
     Map<String, String> stored = repository.findValues(moduleId);
     return module.getConfig().stream()
-        .map(field -> new SettingDTO(field.key(), field.label(), field.type(), field.required(),
-            field.defaultValue(), stored.getOrDefault(field.key(), field.defaultValue())))
+        .map(field -> SettingDTO.of(field, stored))
         .toList();
   }
 
@@ -108,6 +107,7 @@ public class ModuleConfigService {
    * Restores the module's config to its manifest defaults by dropping all stored overrides; does not redeploy, so the container keeps its current env until applied.
    */
   public void reset(String moduleId) {
-    repository.deleteAll(moduleId);
+    // restoring defaults and purging on removal both drop every stored override
+    purge(moduleId);
   }
 }

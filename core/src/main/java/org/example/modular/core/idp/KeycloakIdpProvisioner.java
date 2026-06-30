@@ -8,7 +8,6 @@ import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.example.modular.core.module.ModuleDefinition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientResponseException;
@@ -20,11 +19,6 @@ import org.springframework.web.client.RestClientResponseException;
 @Service
 @ConditionalOnProperty(name = "idp.provider", havingValue = "keycloak", matchIfMissing = true)
 public class KeycloakIdpProvisioner implements IdpProvisioner {
-
-  private static final ParameterizedTypeReference<List<Map<String, Object>>> LIST_OF_MAPS = new ParameterizedTypeReference<>() {
-  };
-  private static final ParameterizedTypeReference<Map<String, Object>> MAP = new ParameterizedTypeReference<>() {
-  };
 
   private final KeycloakAdminClient admin;
 
@@ -193,7 +187,7 @@ public class KeycloakIdpProvisioner implements IdpProvisioner {
             .uri(admin.adminBase() + "/clients/" + clientUuid + "/roles/{name}", role)
             .headers(headers -> headers.setBearerAuth(token))
             .retrieve()
-            .body(MAP))
+            .body(KeycloakAdminClient.MAP))
         .toList();
     admin.rest().post()
         .uri(admin.adminBase() + "/users/" + userId + "/role-mappings/clients/" + clientUuid)
@@ -212,7 +206,7 @@ public class KeycloakIdpProvisioner implements IdpProvisioner {
         .uri(admin.adminBase() + "/users?username={u}&exact=true", username)
         .headers(headers -> headers.setBearerAuth(token))
         .retrieve()
-        .body(LIST_OF_MAPS);
+        .body(KeycloakAdminClient.LIST_OF_MAPS);
     return users == null || users.isEmpty() ? Optional.empty() : Optional.of((String) users.get(0).get("id"));
   }
 

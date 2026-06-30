@@ -76,3 +76,11 @@ function parseBody(text: string): unknown {
     return text
   }
 }
+
+// Pulls the RFC 7807 `detail` from a ProblemDetail body, falling back to the status code.
+export function errorDetail(res: ApiResponse): string {
+  if (res.body && typeof res.body === "object" && "detail" in res.body) {
+    return String((res.body as Record<string, unknown>).detail)
+  }
+  return `Request failed (${res.status})`
+}

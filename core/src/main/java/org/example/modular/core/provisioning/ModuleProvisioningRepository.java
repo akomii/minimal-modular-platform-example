@@ -1,10 +1,10 @@
 package org.example.modular.core.provisioning;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import org.example.modular.core.module.ModuleDefinition;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -62,8 +62,7 @@ public class ModuleProvisioningRepository {
    * Returns the module's installed version, or null if it has no install record.
    */
   public String installedVersion(String moduleId) {
-    List<String> rows = jdbc.query("SELECT installed_version FROM core.module_provisioning WHERE module_id = ?", (rs, n) -> rs.getString(1), moduleId);
-    return rows.stream().findFirst().orElse(null);
+    return queryColumn("installed_version", (rs, n) -> rs.getString(1), moduleId, null);
   }
 
   public boolean isAuthorized(String moduleId) {
@@ -78,9 +77,7 @@ public class ModuleProvisioningRepository {
    * Returns how many of the module's ordered migrations have already run (0 if not installed).
    */
   public int appliedMigrations(String moduleId) {
-    List<Integer> rows = jdbc.query("SELECT applied_migrations FROM core.module_provisioning WHERE module_id = ?",
-        (rs, n) -> rs.getInt(1), moduleId);
-    return rows.stream().findFirst().orElse(0);
+    return queryColumn("applied_migrations", (rs, n) -> rs.getInt(1), moduleId, 0);
   }
 
   public void delete(String moduleId) {
@@ -88,9 +85,7 @@ public class ModuleProvisioningRepository {
   }
 
   public String findPassword(String moduleId) {
-    List<String> rows = jdbc.query("SELECT db_password FROM core.module_provisioning WHERE module_id = ?",
-        (rs, n) -> rs.getString(1), moduleId);
-    return rows.stream().findFirst().orElse("");
+    return queryColumn("db_password", (rs, n) -> rs.getString(1), moduleId, "");
   }
 
   /**
@@ -124,8 +119,14 @@ public class ModuleProvisioningRepository {
   }
 
   private boolean queryFlag(String selectExpr, String moduleId) {
-    List<Boolean> rows = jdbc.query("SELECT " + selectExpr + " FROM core.module_provisioning WHERE module_id = ?",
-        (rs, n) -> rs.getBoolean(1), moduleId);
-    return rows.stream().findFirst().orElse(false);
+    return queryColumn(selectExpr, (rs, n) -> rs.getBoolean(1), moduleId, false);
+  }
+
+  /**
+   * Reads a single column for one module from the ledger, returning {@code fallback} when the module has no row.
+   */
+  private <T> T queryColumn(String selectExpr, RowMapper<T> mapper, String moduleId, T fallback) {
+    return jdbc.query("SELECT " + selectExpr + " FROM core.module_provisioning WHERE module_id = ?", mapper, moduleId)
+        .stream().findFirst().orElse(fallback);
   }
 }

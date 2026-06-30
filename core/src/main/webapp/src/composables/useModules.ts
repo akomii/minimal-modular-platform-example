@@ -1,6 +1,6 @@
 import { ref } from "vue"
-import { useToast } from "primevue/usetoast"
-import { apiCall, type ApiResponse } from "./useApi"
+import { apiCall } from "./useApi"
+import { useApiToast } from "./useApiToast"
 import { useModuleUis } from "./useModuleUis"
 
 export type ModuleStatusValue =
@@ -38,7 +38,7 @@ export interface ModuleInfo {
 const modules = ref<ModuleInfo[]>([])
 
 export function useModules() {
-  const toast = useToast()
+  const { failToast } = useApiToast()
 
   async function list(): Promise<void> {
     const res = await apiCall("GET", "/api/modules")
@@ -52,12 +52,7 @@ export function useModules() {
   async function run(method: string, url: string): Promise<void> {
     const res = await apiCall(method, url)
     if (!res.ok) {
-      toast.add({
-        severity: "error",
-        summary: "Action failed",
-        detail: errorDetail(res),
-        life: 6000
-      })
+      failToast("Action failed", res)
     }
     await list()
     await useModuleUis().refresh()
@@ -84,12 +79,4 @@ export function useModules() {
   }
 
   return { modules, list, install, authorize, start, stop, remove }
-}
-
-// Pulls the RFC 7807 `detail` from a ProblemDetail body, falling back to the status code.
-function errorDetail(res: ApiResponse): string {
-  if (res.body && typeof res.body === "object" && "detail" in res.body) {
-    return String((res.body as Record<string, unknown>).detail)
-  }
-  return `Request failed (${res.status})`
 }

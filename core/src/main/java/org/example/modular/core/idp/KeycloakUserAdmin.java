@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -17,11 +16,6 @@ import org.springframework.stereotype.Service;
 @Service
 @ConditionalOnProperty(name = "idp.provider", havingValue = "keycloak", matchIfMissing = true)
 public class KeycloakUserAdmin implements IdpUserAdmin {
-
-  private static final ParameterizedTypeReference<List<Map<String, Object>>> LIST_OF_MAPS = new ParameterizedTypeReference<>() {
-  };
-  private static final ParameterizedTypeReference<Map<String, Object>> MAP = new ParameterizedTypeReference<>() {
-  };
 
   private final KeycloakAdminClient admin;
 
@@ -36,7 +30,7 @@ public class KeycloakUserAdmin implements IdpUserAdmin {
         .uri(admin.adminBase() + "/users?max=1000")
         .headers(headers -> headers.setBearerAuth(token))
         .retrieve()
-        .body(LIST_OF_MAPS);
+        .body(KeycloakAdminClient.LIST_OF_MAPS);
     if (users == null) {
       return List.of();
     }
@@ -65,7 +59,7 @@ public class KeycloakUserAdmin implements IdpUserAdmin {
         .uri(admin.adminBase() + "/users/" + userId + "/role-mappings")
         .headers(headers -> headers.setBearerAuth(token))
         .retrieve()
-        .body(MAP);
+        .body(KeycloakAdminClient.MAP);
     List<RoleRef> roles = new ArrayList<>();
     if (mappings != null) {
       if (mappings.get("realmMappings") instanceof List<?> realm) {
@@ -106,7 +100,7 @@ public class KeycloakUserAdmin implements IdpUserAdmin {
           .uri(admin.adminBase() + "/roles/{name}", role.name())
           .headers(headers -> headers.setBearerAuth(token))
           .retrieve()
-          .body(MAP);
+          .body(KeycloakAdminClient.MAP);
       sendRoleMapping(token, grant, admin.adminBase() + "/users/" + userId + "/role-mappings/realm", representation);
     } else {
       String clientUuid = admin.findClient(token, role.module())
@@ -115,7 +109,7 @@ public class KeycloakUserAdmin implements IdpUserAdmin {
           .uri(admin.adminBase() + "/clients/" + clientUuid + "/roles/{name}", role.name())
           .headers(headers -> headers.setBearerAuth(token))
           .retrieve()
-          .body(MAP);
+          .body(KeycloakAdminClient.MAP);
       sendRoleMapping(token, grant, admin.adminBase() + "/users/" + userId + "/role-mappings/clients/" + clientUuid, representation);
     }
   }

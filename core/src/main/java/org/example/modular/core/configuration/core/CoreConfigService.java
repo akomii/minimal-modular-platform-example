@@ -56,7 +56,7 @@ public class CoreConfigService {
    */
   public List<SettingDTO> list() {
     return registry.values().stream()
-        .map(setting -> new SettingDTO(setting.key(), setting.label(), setting.type(), setting.required(), setting.defaultValue(), current(setting)))
+        .map(setting -> SettingDTO.of(setting, values))
         .toList();
   }
 
