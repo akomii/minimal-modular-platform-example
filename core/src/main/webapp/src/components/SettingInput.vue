@@ -12,7 +12,7 @@ const model = defineModel<any>()
 </script>
 
 <template>
-  <InputNumber v-if="type === 'number'" :id="inputId" v-model="model" />
+  <InputNumber v-if="type === 'number'" :id="inputId" v-model="model" :use-grouping="false" />
   <ToggleSwitch v-else-if="type === 'boolean'" :id="inputId" v-model="model" />
   <Password
     v-else-if="type === 'secret'"
