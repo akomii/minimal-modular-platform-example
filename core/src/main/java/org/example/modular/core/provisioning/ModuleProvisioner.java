@@ -6,10 +6,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.example.modular.core.configuration.core.CoreConfigService;
 import org.example.modular.core.module.CoreAccess;
 import org.example.modular.core.module.ModuleCatalog;
 import org.example.modular.core.module.ModuleDefinition;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,18 +23,13 @@ public class ModuleProvisioner {
   private final ModuleCatalog catalog;
   private final ModuleScriptRunner scripts;
   private final ModuleProvisioningRepository repository;
-  private final String dbHost;
-  private final String dbPort;
-  private final String dbName;
+  private final CoreConfigService coreConfig;
 
-  public ModuleProvisioner(ModuleCatalog catalog, ModuleScriptRunner scripts, ModuleProvisioningRepository repository,
-      @Value("${modules.db-host}") String dbHost, @Value("${modules.db-port}") String dbPort, @Value("${modules.db-name}") String dbName) {
+  public ModuleProvisioner(ModuleCatalog catalog, ModuleScriptRunner scripts, ModuleProvisioningRepository repository, CoreConfigService coreConfig) {
     this.catalog = catalog;
     this.scripts = scripts;
     this.repository = repository;
-    this.dbHost = dbHost;
-    this.dbPort = dbPort;
-    this.dbName = dbName;
+    this.coreConfig = coreConfig;
   }
 
   /**
@@ -45,9 +40,9 @@ public class ModuleProvisioner {
       return Map.of();
     }
     return Map.of(
-        "MODULE_DB_HOST", dbHost,
-        "MODULE_DB_PORT", dbPort,
-        "MODULE_DB_NAME", dbName,
+        "MODULE_DB_HOST", coreConfig.get(ProvisioningSettings.DB_HOST),
+        "MODULE_DB_PORT", String.valueOf(coreConfig.get(ProvisioningSettings.DB_PORT)),
+        "MODULE_DB_NAME", coreConfig.get(ProvisioningSettings.DB_NAME),
         "MODULE_DB_USER", roleName(module),
         "MODULE_DB_PASSWORD", repository.findPassword(module.getId()));
   }
