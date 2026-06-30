@@ -46,6 +46,7 @@ Core performs OIDC discovery and connects to the database at startup, so bring P
 | **Database viewer (demo)** | An admin-only, read-only tab that browses every non-system schema and table and pages through row data, for debugging and demonstration only. Disable with `dbviewer.enabled=false`.                                                                                                                                                                    |
 | **Module UI integration**  | Modules can declare web pages (`ui`) that the SPA embeds as tabs, and HTTP endpoints (`endpoints`) listed read-only for discovery. UI tabs are role-gated per user: a user sees a running module's tab only if they hold one of its roles, so a non-admin signs in to just the module tab(s) they may use (admins also get the Modules and Users tabs). |
 | **Error handling**         | Exceptions map to RFC 7807 `ProblemDetail` responses.                                                                                                                                                                                                                                                                                                   |
+| **Runtime configuration** | Typed core settings and per-module `config` fields, edited live from a Configuration tab and `/api/config`. Core settings apply immediately; module fields are saved, then applied by recreating the container. Values are overrides over declared defaults, and can be restored to defaults. |
 
 ## The module manifest
 
@@ -89,6 +90,7 @@ For a fuller manifest exercising `idp`, `ui`, and `endpoints`, see `modules/dash
 - **`ui`** (optional) — web pages to embed as tabs, a list of `{ name, path }` (each `path` relative to the module's published port). A page's tab is shown to users holding one of the module's roles
   while the module is running, served by `GET /api/ui`.
 - **`endpoints`** (optional) — HTTP endpoints the module exposes, a list of `{ label, method, path }`, listed read-only in the Modules tab for discovery; core records them but does not call them.
+- **`config`** (optional) — tunable settings the module exposes, a list of `{ key, label, type, default, required }` with `type` one of `string`/`number`/`boolean`/`secret`. The admin edits them in the Configuration tab; on Apply they are injected into the container as env vars (see `modules/config-demo/manifest.json`).
 
 A manifest can pre-grant module roles to existing platform users via `idp.grants`; beyond that, the admin assigns roles to users from the Users tab.
 
@@ -141,6 +143,15 @@ Every change a module makes to core is recorded in an append-only log (`core.mod
 
 The log is written only via a `SECURITY DEFINER` trigger and by the provisioner, so modules can't tamper with it.
 
+## Configuration
+
+Both the platform and each module expose typed settings that an admin edits live from a Configuration tab, with no redeploy.
+
+- **Core settings** are declared in code by the feature that owns them — for example the observability log-buffer sizes, the `dbviewer.enabled` toggle, and the `modules.db-host`/`-port`/`-name` connection handed to module containers. They are served and changed through `/api/config` and take effect immediately, in-process.
+- **Module settings** are the `config` fields a module declares in its manifest. They are served and changed through `/api/modules/{id}/config`: **Save** persists the values; **Apply** recreates the container so the new values reach it as env vars.
+
+Each setting is typed — `string`, `number`, `boolean`, or `secret` (secrets are masked in the UI) — with a label and a default. The database stores only overrides: `core.config` (`key`, `value`) for core settings and `core.module_config` (`module_id`, `key`, `value`) for module settings; an unset value falls back to the declared default. Either scope can be restored to its defaults, which drops the stored overrides.
+
 ## Integration surfaces
 
 Once installed and running, a module — and the platform itself — surfaces to operators and users through the SPA's management UI:
@@ -152,6 +163,7 @@ Once installed and running, a module — and the platform itself — surfaces to
 - **Observability** — live streams (SSE) for HTTP requests, server logs, and per-container logs.
 - **Database viewer (demo)** — an admin-only, read-only tab that browses every non-system schema and table and pages through row data, for debugging and demonstration only. Disable with
   `dbviewer.enabled=false`.
+- **Configuration** — a tab to edit core settings and each module's `config` fields; core changes apply immediately, module changes on Apply, and either scope can be restored to its defaults (see the Configuration section above).
 - **Error responses** — exceptions map to RFC 7807 `ProblemDetail` responses.
 
 ## Module communication (event bus)
